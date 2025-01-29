@@ -8,10 +8,12 @@ import re
 
 class WebScraper:
     def __init__(self, base_url):
-        self.base_url = base_url
+        self.base_url = base_url.rstrip('/')
         self.visited_urls = set()
         self.session = requests.Session()
         self.output_dir = "site"
+        # リポジトリ名を環境変数から取得（GitHub Actions環境用）
+        self.repo_name = os.environ.get('GITHUB_REPOSITORY', '').split('/')[-1]
 
     def download_resource(self, url, local_path):
         """Download resources like images, CSS, JS files"""
@@ -28,6 +30,8 @@ class WebScraper:
 
     def update_links(self, soup, current_url):
         """Update all links to point to local resources"""
+        base_path = f'/{self.repo_name}' if self.repo_name else ''
+        
         # Update links
         for tag in soup.find_all(['a', 'link', 'script', 'img']):
             for attr in ['href', 'src']:
@@ -35,17 +39,40 @@ class WebScraper:
                     absolute_url = urljoin(current_url, tag[attr])
                     if self.base_url in absolute_url:
                         local_path = self.get_local_path(absolute_url)
-                        tag[attr] = '/' + local_path
+                        # GitHub Pages用のパスに修正
+                        tag[attr] = f'{base_path}/{local_path}'
+                    elif tag[attr].startswith('/'):
+                        # 絶対パスの場合もGitHub Pages用に修正
+                        tag[attr] = f'{base_path}{tag[attr]}'
+
+        # Base タグの追加
+        base_tag = soup.find('base')
+        if base_tag:
+            base_tag['href'] = f'{base_path}/'
+        else:
+            new_base = soup.new_tag('base')
+            new_base['href'] = f'{base_path}/'
+            soup.head.insert(0, new_base)
+
         return soup
 
     def get_local_path(self, url):
         """Convert URL to local file path"""
         parsed = urllib.parse.urlparse(url)
         path = parsed.path.strip('/')
+        
+        # パスが空の場合はindex.htmlを使用
         if not path:
-            path = 'index.html'
-        elif not os.path.splitext(path)[1]:
-            path = os.path.join(path, 'index.html')
+            return 'index.html'
+            
+        # URLの末尾がスラッシュで終わる場合
+        if url.endswith('/'):
+            return os.path.join(path, 'index.html')
+            
+        # 拡張子がない場合
+        if not os.path.splitext(path)[1]:
+            return os.path.join(path, 'index.html')
+            
         return path
 
     def save_page(self, url, content):
@@ -69,6 +96,13 @@ class WebScraper:
                 return
 
             soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # ページのエンコーディングを明示的に設定
+            if not soup.find('meta', charset=True):
+                charset_tag = soup.new_tag('meta')
+                charset_tag['charset'] = 'utf-8'
+                soup.head.insert(0, charset_tag)
+
             soup = self.update_links(soup, url)
 
             # Download resources
@@ -88,7 +122,8 @@ class WebScraper:
                 href = link.get('href')
                 if href:
                     next_url = urljoin(url, href)
-                    self.scrape(next_url)
+                    if next_url.startswith(self.base_url):
+                        self.scrape(next_url)
 
         except Exception as e:
             print(f"Error scraping {url}: {e}")
