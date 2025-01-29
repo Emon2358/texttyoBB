@@ -1,27 +1,25 @@
-name: Scrape and Deploy
+name: Run Proxy Server
 
 on:
   workflow_dispatch:
     inputs:
-      url:
-        description: 'URL to scrape'
+      target_url:
+        description: 'Target URL to proxy'
         required: true
+        type: string
+      port:
+        description: 'Port number for the proxy server'
+        required: false
+        default: '8000'
         type: string
 
 jobs:
-  scrape-and-deploy:
+  run-proxy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
+    
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -31,20 +29,27 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          pip install fastapi uvicorn aiohttp beautifulsoup4
 
-      - name: Run scraper
+      - name: Run proxy server
         run: |
-          python scraper.py "${{ github.event.inputs.url }}"
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
-        with:
-          path: './site'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+          # Start the proxy server
+          python proxy_server.py --port ${{ github.event.inputs.port }} &
+          
+          # Wait for server to start
+          sleep 5
+          
+          # Set initial target URL
+          curl "http://localhost:${{ github.event.inputs.port }}/set-target?url=${{ github.event.inputs.target_url }}"
+          
+          # Display server information
+          echo "Proxy server is running on port ${{ github.event.inputs.port }}"
+          echo "Target URL: ${{ github.event.inputs.target_url }}"
+          
+          # Keep the action running
+          while true; do
+            echo "Server is running... ($(date))"
+            echo "Access via: http://localhost:${{ github.event.inputs.port }}"
+            echo "Press Cancel workflow to stop."
+            sleep 60
+          done
