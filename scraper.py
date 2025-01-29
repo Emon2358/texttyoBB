@@ -1,139 +1,152 @@
-import requests
+import asyncio
+import aiohttp
 from bs4 import BeautifulSoup
-import os
-import urllib.parse
-from urllib.parse import urljoin
-import mimetypes
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import HTMLResponse, StreamingResponse
+import uvicorn
+from urllib.parse import urljoin, urlparse
 import re
+from typing import Optional
+import logging
 
-class WebScraper:
-    def __init__(self, base_url):
-        self.base_url = base_url.rstrip('/')
-        self.visited_urls = set()
-        self.session = requests.Session()
-        self.output_dir = "site"
-        # リポジトリ名を環境変数から取得（GitHub Actions環境用）
-        self.repo_name = os.environ.get('GITHUB_REPOSITORY', '').split('/')[-1]
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-    def download_resource(self, url, local_path):
-        """Download resources like images, CSS, JS files"""
+app = FastAPI()
+
+class ProxyServer:
+    def __init__(self):
+        self.session: Optional[aiohttp.ClientSession] = None
+        self.target_domain = None
+        self.scheme = None
+
+    async def ensure_session(self):
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
+
+    def set_target(self, url: str):
+        parsed = urlparse(url)
+        self.target_domain = parsed.netloc
+        self.scheme = parsed.scheme
+
+    async def close(self):
+        if self.session:
+            await self.session.close()
+            self.session = None
+
+    def is_same_domain(self, url: str) -> bool:
         try:
-            response = self.session.get(url)
-            if response.status_code == 200:
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                with open(local_path, 'wb') as f:
-                    f.write(response.content)
-                return True
-        except Exception as e:
-            print(f"Error downloading {url}: {e}")
-        return False
+            parsed = urlparse(url)
+            return parsed.netloc == self.target_domain
+        except:
+            return False
 
-    def update_links(self, soup, current_url):
-        """Update all links to point to local resources"""
-        base_path = f'/{self.repo_name}' if self.repo_name else ''
-        
-        # Update links
-        for tag in soup.find_all(['a', 'link', 'script', 'img']):
-            for attr in ['href', 'src']:
+    async def modify_content(self, content: str, base_path: str) -> str:
+        soup = BeautifulSoup(content, 'html.parser')
+
+        # Update all links to go through our proxy
+        for tag in soup.find_all(['a', 'link', 'script', 'img', 'form']):
+            for attr in ['href', 'src', 'action']:
                 if tag.get(attr):
-                    absolute_url = urljoin(current_url, tag[attr])
-                    if self.base_url in absolute_url:
-                        local_path = self.get_local_path(absolute_url)
-                        # GitHub Pages用のパスに修正
-                        tag[attr] = f'{base_path}/{local_path}'
-                    elif tag[attr].startswith('/'):
-                        # 絶対パスの場合もGitHub Pages用に修正
-                        tag[attr] = f'{base_path}{tag[attr]}'
+                    url = tag[attr]
+                    if url.startswith('//'):
+                        url = f"{self.scheme}:{url}"
+                    if url.startswith('/'):
+                        url = f"{self.scheme}://{self.target_domain}{url}"
+                    if self.is_same_domain(url):
+                        tag[attr] = f"/{base_path}{urlparse(url).path}"
 
-        # Base タグの追加
-        base_tag = soup.find('base')
-        if base_tag:
-            base_tag['href'] = f'{base_path}/'
-        else:
-            new_base = soup.new_tag('base')
-            new_base['href'] = f'{base_path}/'
-            soup.head.insert(0, new_base)
+        # Handle inline styles with url()
+        for tag in soup.find_all(style=True):
+            style = tag['style']
+            urls = re.findall(r'url\([\'"]?(.*?)[\'"]?\)', style)
+            for url in urls:
+                if url.startswith('/'):
+                    new_url = f"/{base_path}{url}"
+                    style = style.replace(f"url({url})", f"url({new_url})")
+                    tag['style'] = style
 
-        return soup
+        # Handle style tags
+        for style in soup.find_all('style'):
+            if style.string:
+                urls = re.findall(r'url\([\'"]?(.*?)[\'"]?\)', style.string)
+                for url in urls:
+                    if url.startswith('/'):
+                        new_url = f"/{base_path}{url}"
+                        style.string = style.string.replace(
+                            f"url({url})", f"url({new_url})")
 
-    def get_local_path(self, url):
-        """Convert URL to local file path"""
-        parsed = urllib.parse.urlparse(url)
-        path = parsed.path.strip('/')
-        
-        # パスが空の場合はindex.htmlを使用
-        if not path:
-            return 'index.html'
+        return str(soup)
+
+proxy_server = ProxyServer()
+
+@app.on_event("startup")
+async def startup_event():
+    await proxy_server.ensure_session()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await proxy_server.close()
+
+@app.get("/set-target")
+async def set_target(url: str):
+    proxy_server.set_target(url)
+    return {"status": "success", "target": url}
+
+@app.get("/{path:path}")
+async def proxy(path: str, request: Request):
+    if not proxy_server.target_domain:
+        return {"error": "Target not set. Please use /set-target?url=... first"}
+
+    # Construct target URL
+    target_url = f"{proxy_server.scheme}://{proxy_server.target_domain}/{path}"
+    if request.query_params:
+        target_url += f"?{request.query_params}"
+
+    logger.info(f"Proxying request to: {target_url}")
+
+    try:
+        async with proxy_server.session.get(target_url) as response:
+            content_type = response.headers.get('Content-Type', '')
             
-        # URLの末尾がスラッシュで終わる場合
-        if url.endswith('/'):
-            return os.path.join(path, 'index.html')
-            
-        # 拡張子がない場合
-        if not os.path.splitext(path)[1]:
-            return os.path.join(path, 'index.html')
-            
-        return path
+            # Handle binary responses (images, etc.)
+            if not content_type.startswith('text/') and \
+               not content_type.startswith('application/javascript') and \
+               not content_type.startswith('application/json'):
+                return StreamingResponse(
+                    response.content.iter_any(),
+                    media_type=content_type
+                )
 
-    def save_page(self, url, content):
-        """Save HTML content to file"""
-        local_path = os.path.join(self.output_dir, self.get_local_path(url))
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        with open(local_path, 'w', encoding='utf-8') as f:
-            f.write(str(content))
+            # Handle text content
+            content = await response.text()
+            if content_type.startswith('text/html'):
+                content = await proxy_server.modify_content(content, "")
 
-    def scrape(self, url):
-        """Main scraping function"""
-        if url in self.visited_urls or not url.startswith(self.base_url):
-            return
+            return Response(
+                content=content,
+                media_type=content_type,
+                status_code=response.status
+            )
 
-        self.visited_urls.add(url)
-        print(f"Scraping: {url}")
-
-        try:
-            response = self.session.get(url)
-            if response.status_code != 200:
-                return
-
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # ページのエンコーディングを明示的に設定
-            if not soup.find('meta', charset=True):
-                charset_tag = soup.new_tag('meta')
-                charset_tag['charset'] = 'utf-8'
-                soup.head.insert(0, charset_tag)
-
-            soup = self.update_links(soup, url)
-
-            # Download resources
-            for tag in soup.find_all(['link', 'script', 'img']):
-                for attr in ['href', 'src']:
-                    if tag.get(attr):
-                        resource_url = urljoin(url, tag[attr])
-                        if resource_url.startswith(self.base_url):
-                            local_path = os.path.join(self.output_dir, self.get_local_path(resource_url))
-                            self.download_resource(resource_url, local_path)
-
-            # Save the page
-            self.save_page(url, soup.prettify())
-
-            # Find and scrape all links
-            for link in soup.find_all('a'):
-                href = link.get('href')
-                if href:
-                    next_url = urljoin(url, href)
-                    if next_url.startswith(self.base_url):
-                        self.scrape(next_url)
-
-        except Exception as e:
-            print(f"Error scraping {url}: {e}")
+    except Exception as e:
+        logger.error(f"Error proxying request: {e}")
+        return {"error": str(e)}
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) != 2:
-        print("Usage: python scraper.py <url>")
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
     
-    target_url = sys.argv[1]
-    scraper = WebScraper(target_url)
-    scraper.scrape(target_url)
+    print(f"""
+    プロキシサーバーを起動しています...
+    
+    使用方法:
+    1. ブラウザで http://localhost:{args.port}/set-target?url=<target-url> にアクセスして対象サイトを設定
+    2. http://localhost:{args.port} にアクセスしてプロキシされたサイトを表示
+    
+    サーバーを停止するには Ctrl+C を押してください。
+    """)
+    
+    uvicorn.run(app, host="0.0.0.0", port=args.port)
