@@ -3,9 +3,4 @@
 無断転載、無断使用を堅く禁じます☆
 
 使用不可サイト
-
-pixiv
-
-soundcloud
-
-twitter
+pixiv.soundcloud.twitter.instagram.discord
