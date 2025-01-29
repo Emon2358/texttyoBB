@@ -4,4 +4,5 @@
 
 使用不可サイト
 pixiv
-
+soundcloud
+twitter
