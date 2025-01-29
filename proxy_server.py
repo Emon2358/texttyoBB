@@ -1,202 +1,163 @@
 import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, Request, Response
-from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from urllib.parse import urljoin, urlparse, unquote
+from urllib.parse import urljoin, urlparse
+import os
+import json
 import re
-from typing import Optional
 import logging
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+class WebScraper:
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+        self.session = None
+        self.url_patterns = {}
+        self.load_url_patterns()
 
-# CORSミドルウェアを追加
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    def load_url_patterns(self):
+        """URL パターンの設定をJSONから読み込む"""
+        if os.path.exists('url_patterns.json'):
+            with open('url_patterns.json', 'r') as f:
+                self.url_patterns = json.load(f)
 
-class ProxyServer:
-    def __init__(self):
-        self.session: Optional[aiohttp.ClientSession] = None
-        self.target_domain = None
-        self.scheme = None
-        self.base_url = None
+    def save_url_patterns(self):
+        """URL パターンの設定をJSONに保存"""
+        with open('url_patterns.json', 'w') as f:
+            json.dump(self.url_patterns, f, indent=2)
 
-    async def ensure_session(self):
-        if self.session is None:
-            self.session = aiohttp.ClientSession()
-
-    def set_target(self, url: str):
-        parsed = urlparse(url)
-        self.target_domain = parsed.netloc
-        self.scheme = parsed.scheme
-        self.base_url = f"{self.scheme}://{self.target_domain}"
-        logger.info(f"Target set to: {self.base_url}")
-
-    async def close(self):
-        if self.session:
-            await self.session.close()
-            self.session = None
-
-    def is_same_domain(self, url: str) -> bool:
-        try:
-            if not url:
-                return False
-            if url.startswith('//'):
-                url = f"{self.scheme}:{url}"
-            if url.startswith('/'):
-                return True
-            parsed = urlparse(url)
-            return parsed.netloc == self.target_domain or not parsed.netloc
-        except:
-            return False
-
-    async def modify_content(self, content: str, base_path: str) -> str:
-        soup = BeautifulSoup(content, 'html.parser')
-
-        # base要素の処理
-        base_tag = soup.find('base')
-        if base_tag:
-            base_tag.decompose()
-
-        # Update all links to go through our proxy
-        for tag in soup.find_all(['a', 'link', 'script', 'img', 'form', 'iframe']):
-            for attr in ['href', 'src', 'action']:
-                if tag.get(attr):
-                    url = tag[attr]
-                    # データURLはスキップ
-                    if url.startswith('data:'):
-                        continue
-                    # JavaScript URLはスキップ
-                    if url.startswith('javascript:'):
-                        continue
-                    # 相対URLを絶対URLに変換
-                    if url.startswith('//'):
-                        url = f"{self.scheme}:{url}"
-                    elif url.startswith('/'):
-                        url = f"{self.base_url}{url}"
-                    else:
-                        url = urljoin(self.base_url, url)
-                    
-                    if self.is_same_domain(url):
-                        parsed = urlparse(url)
-                        path = parsed.path
-                        if parsed.query:
-                            path += f"?{parsed.query}"
-                        tag[attr] = f"/{path.lstrip('/')}"
-
-        # インラインスタイルの処理
-        for tag in soup.find_all(style=True):
-            style = tag['style']
-            urls = re.findall(r'url\([\'"]?(.*?)[\'"]?\)', style)
-            for url in urls:
-                if url.startswith('/'):
-                    style = style.replace(f"url({url})", f"url({self.base_url}{url})")
-                    tag['style'] = style
-
-        # スタイルタグの処理
-        for style in soup.find_all('style'):
-            if style.string:
-                urls = re.findall(r'url\([\'"]?(.*?)[\'"]?\)', style.string)
-                for url in urls:
-                    if url.startswith('/'):
-                        style.string = style.string.replace(
-                            f"url({url})", f"url({self.base_url}{url})")
-
-        return str(soup)
-
-proxy_server = ProxyServer()
-
-@app.on_event("startup")
-async def startup_event():
-    await proxy_server.ensure_session()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await proxy_server.close()
-
-@app.get("/set-target")
-async def set_target(url: str):
-    proxy_server.set_target(url)
-    logger.info(f"Target URL set to: {url}")
-    return {"status": "success", "target": url}
-
-@app.get("/")
-async def root(request: Request):
-    if not proxy_server.target_domain:
-        return {"error": "Target not set. Please use /set-target?url=... first"}
-    return await proxy("", request)
-
-@app.get("/{path:path}")
-async def proxy(path: str, request: Request):
-    if not proxy_server.target_domain:
-        return {"error": "Target not set. Please use /set-target?url=... first"}
-
-    # ターゲットURLの構築
-    target_url = f"{proxy_server.base_url}/{path}"
-    if request.query_params:
-        target_url += f"?{request.query_params}"
-
-    logger.info(f"Proxying request to: {target_url}")
-
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+    def update_url_pattern(self, old_url: str, new_url: str):
+        """新しいURLパターンを登録"""
+        old_parsed = urlparse(old_url)
+        new_parsed = urlparse(new_url)
         
-        async with proxy_server.session.get(target_url, headers=headers) as response:
-            content_type = response.headers.get('Content-Type', '').split(';')[0]
-            
-            # バイナリレスポンスの処理
-            if not content_type.startswith('text/') and \
-               not content_type.startswith('application/javascript') and \
-               not content_type.startswith('application/json'):
-                return StreamingResponse(
-                    response.content.iter_any(),
-                    media_type=content_type,
-                    status_code=response.status
-                )
+        # パスのパターンを抽出
+        old_path = old_parsed.path
+        new_path = new_parsed.path
+        
+        # 日付やIDなどの可変部分をパターン化
+        pattern = self.create_url_pattern(old_path, new_path)
+        self.url_patterns[pattern] = {
+            'example_old': old_url,
+            'example_new': new_url,
+            'last_updated': datetime.now().isoformat()
+        }
+        self.save_url_patterns()
 
-            # テキストコンテンツの処理
-            content = await response.text()
-            
-            # HTMLの場合はリンクを修正
-            if content_type.startswith('text/html'):
-                content = await proxy_server.modify_content(content, "")
-            
-            return Response(
-                content=content,
-                media_type=content_type,
-                status_code=response.status
-            )
+    def create_url_pattern(self, old_path: str, new_path: str) -> str:
+        """URLのパターンを生成"""
+        parts_old = old_path.split('/')
+        parts_new = new_path.split('/')
+        
+        pattern_parts = []
+        for old, new in zip(parts_old, parts_new):
+            if old == new:
+                pattern_parts.append(old)
+            else:
+                # 数字のみの部分は {id} として扱う
+                if old.isdigit() and new.isdigit():
+                    pattern_parts.append('{id}')
+                # 日付パターンの検出
+                elif re.match(r'\d{4}-\d{2}-\d{2}', old) and re.match(r'\d{4}-\d{2}-\d{2}', new):
+                    pattern_parts.append('{date}')
+                else:
+                    pattern_parts.append('*')
+        
+        return '/'.join(pattern_parts)
 
-    except Exception as e:
-        logger.error(f"Error proxying request: {e}")
-        return {"error": str(e)}
+    async def normalize_url(self, url: str) -> str:
+        """URLを正規化して最新のパターンに変換"""
+        parsed = urlparse(url)
+        path = parsed.path
+        
+        for pattern, info in self.url_patterns.items():
+            if self.match_pattern(path, pattern):
+                return info['example_new']
+        
+        return url
+
+    def match_pattern(self, path: str, pattern: str) -> bool:
+        """パスがパターンにマッチするか確認"""
+        pattern_parts = pattern.split('/')
+        path_parts = path.split('/')
+        
+        if len(pattern_parts) != len(path_parts):
+            return False
+            
+        for pattern_part, path_part in zip(pattern_parts, path_parts):
+            if pattern_part in ['{id}', '{date}', '*']:
+                continue
+            if pattern_part != path_part:
+                return False
+        
+        return True
+
+    async def scrape_page(self, url: str) -> str:
+        """ページをスクレイピングしてHTMLを生成"""
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url) as response:
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    
+                    # 画像、動画、iframeのsrcを元URLに置き換え
+                    for tag in soup.find_all(['img', 'video', 'iframe', 'source']):
+                        if tag.get('src'):
+                            tag['src'] = urljoin(url, tag['src'])
+                        if tag.get('data-src'):
+                            tag['data-src'] = urljoin(url, tag['data-src'])
+                    
+                    # CSSとJavaScriptのリンクを元URLに置き換え
+                    for tag in soup.find_all(['link', 'script']):
+                        if tag.get('href'):
+                            tag['href'] = urljoin(url, tag['href'])
+                        if tag.get('src'):
+                            tag['src'] = urljoin(url, tag['src'])
+                    
+                    return str(soup)
+            except Exception as e:
+                logger.error(f"Error scraping {url}: {e}")
+                return ""
+
+    async def save_page(self, url: str, output_dir: str = 'pages'):
+        """ページをスクレイピングしてファイルに保存"""
+        # 出力ディレクトリの作成
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # URLを正規化
+        normalized_url = await self.normalize_url(url)
+        
+        # ページの内容を取得
+        html_content = await self.scrape_page(normalized_url)
+        if not html_content:
+            return
+        
+        # ファイル名の生成
+        parsed = urlparse(normalized_url)
+        filename = re.sub(r'[^a-zA-Z0-9]', '_', parsed.path)
+        if not filename:
+            filename = 'index'
+        filename = f"{filename}.html"
+        
+        # ファイルの保存
+        filepath = os.path.join(output_dir, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        logger.info(f"Saved page to {filepath}")
+        return filepath
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=8000)
-    args = parser.parse_args()
+    import sys
     
-    print(f"""
-    プロキシサーバーを起動しています...
+    if len(sys.argv) != 2:
+        print("Usage: python scraper.py <url>")
+        sys.exit(1)
     
-    使用方法:
-    1. ブラウザで http://localhost:{args.port}/set-target?url=<target-url> にアクセスして対象サイトを設定
-    2. http://localhost:{args.port} にアクセスしてプロキシされたサイトを表示
+    url = sys.argv[1]
+    scraper = WebScraper(url)
     
-    サーバーを停止するには Ctrl+C を押してください。
-    """)
-    
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    asyncio.run(scraper.save_page(url))
