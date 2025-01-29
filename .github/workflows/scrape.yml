@@ -25,6 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install aiohttp beautifulsoup4
       
+      - name: Create initial url_patterns.json if not exists
+        run: |
+          if [ ! -f url_patterns.json ]; then
+            echo "{}" > url_patterns.json
+          fi
+      
       - name: Scrape and save page
         run: |
           python scraper.py "${{ github.event.inputs.target_url }}"
@@ -33,7 +39,18 @@ jobs:
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          git add pages/
-          git add url_patterns.json
-          git commit -m "Update scraped page from ${{ github.event.inputs.target_url }}"
-          git push
+          
+          # Create pages directory if it doesn't exist
+          mkdir -p pages
+          
+          # Add only existing files
+          git add -f url_patterns.json
+          git add -f pages/
+          
+          # Check if there are any changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update scraped page from ${{ github.event.inputs.target_url }}"
+            git push
+          fi
