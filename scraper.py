@@ -8,6 +8,7 @@ import re
 import logging
 from datetime import datetime
 import random
+import urllib.parse
 
 # Selenium関連のインポート
 from selenium import webdriver
@@ -112,6 +113,101 @@ class WebScraper:
             logger.error(f"Error setting up Selenium driver: {e}")
             return None
 
+    def _get_site_name(self, url: str) -> str:
+        """URLからサイト名を取得"""
+        parsed_url = urllib.parse.urlparse(url)
+        
+        # ドメイン名から不要な部分を削除
+        domain = parsed_url.netloc
+        domain = domain.replace('www.', '')
+        domain = domain.split('.')[0]  # 第一レベルドメインを取得
+        
+        # タイトルからサイト名を取得（可能な場合）
+        try:
+            title = self.driver.title
+            if title:
+                # タイトルが存在する場合は、それを優先
+                site_name = re.sub(r'[^\w\-_\.]', '_', title)[:50]
+                return site_name
+        except:
+            pass
+        
+        # ドメイン名をサイト名として使用
+        return re.sub(r'[^\w\-_\.]', '_', domain)[:50]
+
+    async def normalize_url(self, url: str) -> str:
+        """URLを正規化して最新のパターンに変換"""
+        parsed = urlparse(url)
+        path = parsed.path
+        
+        for pattern, info in self.url_patterns.items():
+            if self.match_pattern(path, pattern):
+                return info['example_new']
+        
+        return url
+
+    def match_pattern(self, path: str, pattern: str) -> bool:
+        """パスがパターンにマッチするか確認"""
+        pattern_parts = pattern.split('/')
+        path_parts = path.split('/')
+        
+        if len(pattern_parts) != len(path_parts):
+            return False
+            
+        for pattern_part, path_part in zip(pattern_parts, path_parts):
+            if pattern_part in ['{id}', '{date}', '*']:
+                continue
+            if pattern_part != path_part:
+                return False
+        
+        return True
+
+    async def save_page(self, url: str, output_dir: str = 'pages'):
+        """ページを保存する高度な実装"""
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            
+            # ページコンテンツを取得
+            html_content = await self.scrape_page(url)
+            
+            if not html_content:
+                logger.warning(f"No content retrieved for {url}")
+                return None
+            
+            # サイト名を取得
+            site_name = self._get_site_name(url)
+            
+            # ファイル名生成
+            parsed_url = urlparse(url)
+            filename_base = re.sub(r'[^a-zA-Z0-9]', '_', parsed_url.path or 'index')
+            filename = f"{site_name}_{filename_base}_{int(datetime.now().timestamp())}.html"
+            
+            # ファイルパス
+            filepath = os.path.join(output_dir, filename)
+            
+            # メタデータ保存
+            metadata = {
+                'original_url': url,
+                'site_name': site_name,
+                'scraped_at': datetime.now().isoformat(),
+                'domain': parsed_url.netloc
+            }
+            
+            # ファイル書き込み
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            # メタデータ保存
+            with open(f"{filepath}.json", 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, indent=2)
+            
+            logger.info(f"Successfully saved page from {url}")
+            return filepath
+        
+        except Exception as e:
+            logger.error(f"Error saving page from {url}: {e}")
+            return None
+
     async def scrape_page(self, url: str) -> str:
         """高度なページスクレイピング"""
         try:
@@ -134,6 +230,7 @@ class WebScraper:
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 for attr in ['src', 'href', 'data-src']:
                     if tag.get(attr):
+                        # 元のURLを保持するために、元のドメインを使用
                         tag[attr] = urljoin(url, tag[attr])
             
             # スクリプトタグ内のコンテンツを削除（セキュリティとパフォーマンス上の理由）
@@ -146,68 +243,71 @@ class WebScraper:
             logger.error(f"Advanced scraping error for {url}: {e}")
             return ""
 
-    async def save_page(self, url: str, output_dir: str = 'pages'):
-        """ページを保存する高度な実装"""
-        try:
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # ページコンテンツを取得
-            html_content = await self.scrape_page(url)
-            
-            if not html_content:
-                logger.warning(f"No content retrieved for {url}")
-                return None
-            
-            # ファイル名生成
-            parsed_url = urlparse(url)
-            filename = re.sub(r'[^a-zA-Z0-9]', '_', parsed_url.path or 'index')
-            filename = f"{filename}_{int(datetime.now().timestamp())}.html"
-            
-            # ファイルパス
-            filepath = os.path.join(output_dir, filename)
-            
-            # メタデータ保存
-            metadata = {
-                'original_url': url,
-                'scraped_at': datetime.now().isoformat(),
-                'domain': parsed_url.netloc
-            }
-            
-            # ファイル書き込み
-            with open(filepath, 'w', encoding='utf-8'):  # コロンを追加
-                f.write(html_content)
-            
-            # メタデータ保存
-            with open(f"{filepath}.json", 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, indent=2)
-            
-            logger.info(f"Successfully saved page from {url}")
-            return filepath
-        
-        except Exception as e:
-            logger.error(f"Error saving page from {url}: {e}")
-            return None
-
-    def __del__(self):
-        """クリーンアップ"""
-        if hasattr(self, 'driver'):
+    def close_driver(self):
+        """Seleniumドライバーを閉じる"""
+        if self.driver:
             self.driver.quit()
 
 async def main(urls):
     tasks = []
-    for url in urls:
-        scraper = WebScraper(url)
-        task = asyncio.create_task(scraper.save_page(url))
-        tasks.append(task)
+    scrapers = []
     
-    await asyncio.gather(*tasks)
+    try:
+        for url in urls:
+            scraper = WebScraper(url)
+            scrapers.append(scraper)
+            task = asyncio.create_task(scraper.save_page(url))
+            tasks.append(task)
+        
+        # タスクの実行と結果の取得
+        results = await asyncio.gather(*tasks)
+        
+        return results
+    
+    except Exception as e:
+        logger.error(f"Error in main scraping process: {e}")
+        return None
+    
+    finally:
+        # すべてのScraperのドライバーを閉じる
+        for scraper in scrapers:
+            scraper.close_driver()
 
 if __name__ == "__main__":
     import sys
     
+    # ロギングの設定をさらに詳細に
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+ handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('scraper.log', encoding='utf-8')
+        ]
+    )
+    
+    # コマンドライン引数のチェック
     if len(sys.argv) < 2:
         print("Usage: python scraper.py <url1> <url2> ...")
         sys.exit(1)
     
+    # スクレイピングするURLのリスト
     urls = sys.argv[1:]
-    asyncio.run(main(urls))
+    
+    try:
+        # asyncioを使用してスクレイピングを実行
+        results = asyncio.run(main(urls))
+        
+        # 結果の表示
+        if results:
+            for result in results:
+                if result:
+                    print(f"Successfully scraped: {result}")
+                else:
+                    print("Failed to scrape a URL")
+        else:
+            print("No URLs were scraped successfully")
+    
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        sys.exit(1)
