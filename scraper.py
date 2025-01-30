@@ -174,7 +174,7 @@ class WebScraper:
             }
             
             # ファイル書き込み
-            with open(filepath, 'w', encoding='utf-8') ```python
+            with open(filepath, 'w', encoding='utf-8')
                 f.write(html_content)
             
             # メタデータ保存
