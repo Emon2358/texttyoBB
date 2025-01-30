@@ -23,7 +23,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5  # Updated to latest version
         with:
-          python-version: '3.11'  # Specify a specific Python version
+          python-version: '3.x'  # Specify a specific Python version
           cache: 'pip'  # Enable pip caching for faster dependency installation
       
       # Install project dependencies
