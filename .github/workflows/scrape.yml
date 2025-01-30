@@ -11,56 +11,41 @@ jobs:
   scrape-page:
     runs-on: ubuntu-latest
     steps:
-      # リポジトリをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Python 環境をセットアップ
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
           cache: 'pip'
 
-      # Chrome & ChromeDriver のインストール
-      - name: Install Chrome and ChromeDriver
-        run: |
-          sudo apt-get update
-          sudo apt-get upgrade -y
-          sudo apt-get install -y google-chrome-stable
-          python -m pip install --upgrade pip
-          pip install chromedriver-autoinstaller
-
-      # 依存関係のインストール
       - name: Install dependencies
         run: |
-          pip install aiohttp beautifulsoup4 selenium webdriver_manager chromedriver-autoinstaller
+          python -m pip install --upgrade pip
+          pip install playwright beautifulsoup4 asyncio
+          playwright install firefox
+          playwright install-deps firefox
 
-      # url_patterns.json を準備
       - name: Prepare URL patterns file
         run: |
           touch url_patterns.json
           [ -s url_patterns.json ] || echo "{}" > url_patterns.json
 
-      # スクレイピングを実行
       - name: Scrape and save page
         env:
           TARGET_URL: ${{ github.event.inputs.target_url }}
         run: |
           python scraper.py "$TARGET_URL"
 
-      # 変更をコミット & プッシュ
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          # sites ディレクトリを確保
           mkdir -p sites
-          # 変更をステージング
           git add -f url_patterns.json sites/
-          # 変更がある場合のみコミット & プッシュ
           if [[ -n "$(git status --porcelain)" ]]; then
             git commit -m "Scrape: ${{ github.event.inputs.target_url }}"
             git push
