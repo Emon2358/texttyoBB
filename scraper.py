@@ -1,5 +1,5 @@
 import asyncio
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import os
@@ -8,6 +8,7 @@ import logging
 import sys
 from datetime import datetime
 import random
+from typing import Optional
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,23 +20,13 @@ class WebScraper:
     def __init__(self, base_url: str):
         self.base_url = base_url
         self._playwright = None
-        self._browser = None
-        self._context = None
-        self._page = None
-        self._setup_complete = False
+        self._browser: Optional[Browser] = None
+        self._context: Optional[BrowserContext] = None
+        self._page: Optional[Page] = None
 
-    async def setup(self):
-        """Playwrightの初期化を確実に行う"""
-        if self._setup_complete:
-            return True
-
-        logger.info("Starting Playwright setup...")
+    async def _init_browser(self) -> bool:
+        """ブラウザの初期化を行う"""
         try:
-            self._playwright = await async_playwright().start()
-            if not self._playwright:
-                raise Exception("Failed to start Playwright")
-
-            logger.info("Launching browser...")
             launch_args = [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -46,86 +37,96 @@ class WebScraper:
 
             self._browser = await self._playwright.firefox.launch(
                 headless=True,
-                args=launch_args,
-                firefox_user_prefs={
-                    "media.navigator.enabled": False,
-                    "media.peerconnection.enabled": False
-                }
+                args=launch_args
             )
-            
-            if not self._browser:
-                raise Exception("Failed to launch browser")
+            return True
+        except Exception as e:
+            logger.error(f"ブラウザの初期化に失敗: {str(e)}")
+            return False
 
-            logger.info("Creating browser context...")
+    async def _init_context(self) -> bool:
+        """ブラウザコンテキストの初期化を行う"""
+        try:
             self._context = await self._browser.new_context(
                 viewport={'width': 1920, 'height': 1080},
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
-                bypass_csp=True,
-                extra_http_headers={
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-                }
+                bypass_csp=True
             )
+            return True
+        except Exception as e:
+            logger.error(f"コンテキストの初期化に失敗: {str(e)}")
+            return False
 
-            if not self._context:
-                raise Exception("Failed to create browser context")
+    async def setup(self) -> bool:
+        """Playwrightの初期化処理"""
+        logger.info("Playwright のセットアップを開始...")
+        try:
+            if self._playwright is None:
+                self._playwright = await async_playwright().start()
+                if self._playwright is None:
+                    raise Exception("Playwright の起動に失敗")
 
-            logger.info("Creating new page...")
+            logger.info("ブラウザを起動中...")
+            if not await self._init_browser():
+                raise Exception("ブラウザの初期化に失敗")
+
+            logger.info("ブラウザコンテキストを作成中...")
+            if not await self._init_context():
+                raise Exception("コンテキストの初期化に失敗")
+
+            logger.info("ページを作成中...")
             self._page = await self._context.new_page()
-            if not self._page:
-                raise Exception("Failed to create new page")
+            if self._page is None:
+                raise Exception("ページの作成に失敗")
 
-            await self._page.set_default_timeout(30000)
-            await self._page.set_default_navigation_timeout(30000)
+            # タイムアウトの設定
+            await self._page.set_default_timeout(60000)
+            await self._page.set_default_navigation_timeout(60000)
 
-            await self._context.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            """)
-
-            self._setup_complete = True
-            logger.info("Playwright setup completed successfully")
+            logger.info("セットアップが正常に完了")
             return True
 
         except Exception as e:
-            logger.error(f"Error during setup: {str(e)}")
+            logger.error(f"セットアップ中にエラーが発生: {str(e)}")
             await self.cleanup()
             return False
 
     async def cleanup(self):
-        """リソースの確実な解放"""
-        logger.info("Starting cleanup...")
+        """リソースの解放処理"""
+        logger.info("クリーンアップを開始...")
         try:
-            if hasattr(self, '_page') and self._page:
+            if self._page:
+                logger.info("ページを閉じています...")
                 await self._page.close()
                 self._page = None
 
-            if hasattr(self, '_context') and self._context:
+            if self._context:
+                logger.info("コンテキストを閉じています...")
                 await self._context.close()
                 self._context = None
 
-            if hasattr(self, '_browser') and self._browser:
+            if self._browser:
+                logger.info("ブラウザを閉じています...")
                 await self._browser.close()
                 self._browser = None
 
-            if hasattr(self, '_playwright') and self._playwright:
+            if self._playwright:
+                logger.info("Playwright を停止しています...")
                 await self._playwright.stop()
                 self._playwright = None
 
-            self._setup_complete = False
-
         except Exception as e:
-            logger.error(f"Error during cleanup: {str(e)}")
+            logger.error(f"クリーンアップ中にエラーが発生: {str(e)}")
         finally:
-            logger.info("Cleanup completed")
+            logger.info("クリーンアップ完了")
 
-    async def scrape_page(self, url: str) -> str:
-        """ページのスクレイピング"""
-        if not self._page or not self._setup_complete:
-            raise Exception("Page is not properly initialized")
+    async def scrape_page(self, url: str) -> Optional[str]:
+        """ページのスクレイピング処理"""
+        if not self._page:
+            raise Exception("ページが初期化されていません")
 
         try:
-            logger.info(f"Navigating to {url}")
+            logger.info(f"{url} にアクセス中...")
             await asyncio.sleep(random.uniform(2, 4))
 
             response = await self._page.goto(
@@ -135,14 +136,14 @@ class WebScraper:
             )
 
             if not response:
-                raise Exception("Failed to get page response")
+                raise Exception("ページの応答がありません")
 
             if response.status >= 400:
-                raise Exception(f"Error status code: {response.status}")
+                raise Exception(f"エラーステータス: {response.status}")
 
             await asyncio.sleep(random.uniform(3, 5))
             
-            # モバイルスクロールのシミュレーション
+            # スクロール処理
             await self._page.evaluate("""
                 window.scrollBy({
                     top: document.body.scrollHeight,
@@ -151,21 +152,18 @@ class WebScraper:
             """)
             
             await asyncio.sleep(random.uniform(2, 4))
-
-            html = await self._page.content()
-            if not html:
-                raise Exception("Failed to get page content")
-                
-            return html
+            
+            return await self._page.content()
 
         except Exception as e:
-            logger.error(f"Error scraping page: {str(e)}")
-            raise
+            logger.error(f"スクレイピング中にエラーが発生: {str(e)}")
+            return None
 
     async def save_page(self, url: str, output_dir: str = 'sites') -> bool:
+        """ページの保存処理"""
         try:
             if not await self.setup():
-                raise Exception("Failed to setup Playwright")
+                raise Exception("Playwright のセットアップに失敗")
 
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
@@ -174,9 +172,9 @@ class WebScraper:
 
             html_content = await self.scrape_page(url)
             if not html_content:
-                raise Exception("No content retrieved")
+                raise Exception("コンテンツの取得に失敗")
 
-            # HTMLの整形とリソースURLの修正
+            # HTML の整形処理
             soup = BeautifulSoup(html_content, 'html.parser')
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 for attr in ['src', 'href', 'data-src']:
@@ -189,11 +187,11 @@ class WebScraper:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(str(soup))
 
-            logger.info(f"Page saved successfully to {filepath}")
+            logger.info(f"ページを {filepath} に保存しました")
             return True
 
         except Exception as e:
-            logger.error(f"Error saving page: {str(e)}")
+            logger.error(f"ページの保存中にエラーが発生: {str(e)}")
             return False
 
         finally:
@@ -201,18 +199,18 @@ class WebScraper:
 
 async def main():
     if len(sys.argv) != 2:
-        logger.error("Usage: python scraper.py <url>")
+        logger.error("使用方法: python scraper.py <url>")
         return 1
 
     url = sys.argv[1]
-    logger.info(f"Starting scraper for URL: {url}")
+    logger.info(f"スクレイピングを開始: {url}")
     
     try:
         scraper = WebScraper(url)
         success = await scraper.save_page(url)
         return 0 if success else 1
     except Exception as e:
-        logger.error(f"Fatal error: {str(e)}")
+        logger.error(f"致命的なエラーが発生: {str(e)}")
         return 1
 
 if __name__ == "__main__":
