@@ -60,19 +60,13 @@ jobs:
             if [ -f "$file" ]; then
               filename=$(basename "$file")
               echo "<h2>${filename}</h2>" >> archive.html
-              echo "<iframe src='$file' style='width:100%; height:600px; border:none;'></iframe>" >> archive.html
+              cat "$file" >> archive.html  # Append the content of the scraped HTML file
             fi
           done
           
           echo "</body></html>" >> archive.html
       
-      - name: Check scraped content
-        run: |
-          echo "Scraped files:"
-          ls -R pages/
-          ls -R archive.html
-      
-      - name: Create scraped content branch
+      - name: Commit and Push
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
@@ -90,7 +84,7 @@ jobs:
           # Push to remote branch
           git push -f origin ${{ github.event.inputs.output_branch }}
       
-      - name: Upload scraped content
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: scraped-sites
