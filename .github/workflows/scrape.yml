@@ -1,6 +1,5 @@
 name: Scrape and Save Page
 
-# Trigger workflow manually with a target URL input
 on:
   workflow_dispatch:
     inputs:
@@ -9,7 +8,6 @@ on:
         required: true
         type: string
 
-# Define job for scraping
 jobs:
   scrape-page:
     runs-on: ubuntu-latest
@@ -26,11 +24,24 @@ jobs:
           python-version: '3.x'
           cache: 'pip'
       
+      # Install Chrome and ChromeDriver
+      - name: Install Chrome and ChromeDriver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f 3 | cut -d '.' -f 1)
+          wget -q "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION"
+          CHROMEDRIVER_VERSION=$(cat "LATEST_RELEASE_$CHROME_VERSION")
+          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip
+          sudo mv chromedriver /usr/local/bin/
+          sudo chmod +x /usr/local/bin/chromedriver
+      
       # Install project dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install aiohttp beautifulsoup4
+          pip install aiohttp beautifulsoup4 selenium webdriver_manager
       
       # Ensure url_patterns.json exists
       - name: Prepare URL patterns file
@@ -53,17 +64,15 @@ jobs:
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           
-          # Ensure pages directory exists
-          mkdir -p pages
+          # Ensure sites directory exists
+          mkdir -p sites
           
           # Stage relevant files
           git add -f url_patterns.json
-          git add -f pages/
+          git add -f sites/
           
           # Check for changes and commit if needed
           if [[ -n "$(git status --porcelain)" ]]; then
             git commit -m "Scrape: ${{ github.event.inputs.target_url }}"
             git push
-          else
-            echo "No changes to commit"
           fi
