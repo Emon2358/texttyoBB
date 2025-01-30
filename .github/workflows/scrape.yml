@@ -21,7 +21,7 @@ jobs:
           python-version: '3.11'  # 明示的なバージョン指定
           cache: 'pip'
 
-     - name: Install system dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
