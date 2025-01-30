@@ -10,7 +10,7 @@ from datetime import datetime
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller  # 修正: 自動インストールを追加
+import chromedriver_autoinstaller  # ChromeDriver を自動インストール
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class WebScraper:
 
     def setup_selenium(self):
         """ChromeDriver を自動インストールし、Selenium WebDriver をセットアップ"""
-        chromedriver_autoinstaller.install()  # 修正: ChromeDriver の自動インストール
+        chromedriver_autoinstaller.install()  # ChromeDriver の自動インストール
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
@@ -52,67 +52,6 @@ class WebScraper:
         with open('url_patterns.json', 'w') as f:
             json.dump(self.url_patterns, f, indent=2)
 
-    def update_url_pattern(self, old_url: str, new_url: str):
-        """新しい URL パターンを登録"""
-        old_parsed = urlparse(old_url)
-        new_parsed = urlparse(new_url)
-
-        old_path = old_parsed.path
-        new_path = new_parsed.path
-
-        pattern = self.create_url_pattern(old_path, new_path)
-        self.url_patterns[pattern] = {
-            'example_old': old_url,
-            'example_new': new_url,
-            'last_updated': datetime.now().isoformat()
-        }
-        self.save_url_patterns()
-
-    def create_url_pattern(self, old_path: str, new_path: str) -> str:
-        """URL パターンを生成"""
-        parts_old = old_path.split('/')
-        parts_new = new_path.split('/')
-
-        pattern_parts = []
-        for old, new in zip(parts_old, parts_new):
-            if old == new:
-                pattern_parts.append(old)
-            elif old.isdigit() and new.isdigit():
-                pattern_parts.append('{id}')
-            elif re.match(r'\d{4}-\d{2}-\d{2}', old) and re.match(r'\d{4}-\d{2}-\d{2}', new):
-                pattern_parts.append('{date}')
-            else:
-                pattern_parts.append('*')
-
-        return '/'.join(pattern_parts)
-
-    async def normalize_url(self, url: str) -> str:
-        """URL を正規化"""
-        parsed = urlparse(url)
-        path = parsed.path
-
-        for pattern, info in self.url_patterns.items():
-            if self.match_pattern(path, pattern):
-                return info['example_new']
-
-        return url
-
-    def match_pattern(self, path: str, pattern: str) -> bool:
-        """パスがパターンにマッチするか確認"""
-        pattern_parts = pattern.split('/')
-        path_parts = path.split('/')
-
-        if len(pattern_parts) != len(path_parts):
-            return False
-
-        for pattern_part, path_part in zip(pattern_parts, path_parts):
-            if pattern_part in ['{id}', '{date}', '*']:
-                continue
-            if pattern_part != path_part:
-                return False
-
-        return True
-
     async def scrape_page(self, url: str) -> str:
         """Selenium を使ってページをスクレイピング"""
         try:
@@ -121,17 +60,14 @@ class WebScraper:
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
 
-            for tag in soup.find_all(['img', 'video', 'iframe', 'source']):
+            # 画像、動画、スクリプト、スタイルシートなどの URL を元のドメインのまま保持
+            for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 if tag.get('src'):
                     tag['src'] = urljoin(url, tag['src'])
-                if tag.get('data-src'):
-                    tag['data-src'] = urljoin(url, tag['data-src'])
-
-            for tag in soup.find_all(['link', 'script']):
                 if tag.get('href'):
                     tag['href'] = urljoin(url, tag['href'])
-                if tag.get('src'):
-                    tag['src'] = urljoin(url, tag['src'])
+                if tag.get('data-src'):
+                    tag['data-src'] = urljoin(url, tag['data-src'])
 
             return str(soup)
         except Exception as e:
@@ -141,13 +77,12 @@ class WebScraper:
     async def save_page(self, url: str, output_dir: str = 'sites'):
         """スクレイピングしたページを保存"""
         try:
-            normalized_url = await self.normalize_url(url)
-            parsed_url = urlparse(normalized_url)
+            parsed_url = urlparse(url)
             domain = parsed_url.netloc
             domain_dir = os.path.join(output_dir, domain)
             os.makedirs(domain_dir, exist_ok=True)
 
-            html_content = await self.scrape_page(normalized_url)
+            html_content = await self.scrape_page(url)
             if not html_content:
                 return
 
