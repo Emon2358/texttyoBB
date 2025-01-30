@@ -35,10 +35,11 @@ class WebScraper:
                 '--disable-gpu',
                 '--headless=new',
                 '--disable-web-security',
-                '--disable-features=IsolateOrigins,site-per-process'
+                '--disable-features=IsolateOrigins,site-per-process',
+                '--window-size=1920,1080'  # デスクトップサイズのウィンドウ
             ]
 
-            self._browser = await self._playwright.firefox.launch(
+            self._browser = await self._playwright.chromium.launch(  # Firefoxからより一般的なChromiumに変更
                 headless=True,
                 args=launch_args,
                 timeout=90000,
@@ -55,15 +56,21 @@ class WebScraper:
                 return False
 
             self._context = await self._browser.new_context(
-                viewport={'width': 390, 'height': 844},
-                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+                viewport={'width': 1920, 'height': 1080},  # デスクトップサイズのビューポート
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',  # デスクトップのUser-Agent
                 bypass_csp=True,
-                accept_downloads=False
+                accept_downloads=True  # デスクトップではダウンロードを許可
             )
             
+            # Webdriverの検出を回避
             await self._context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
+                });
+                
+                // プラットフォーム情報をデスクトップに設定
+                Object.defineProperty(navigator, 'platform', {
+                    get: () => 'Win32'
                 });
             """)
             
@@ -99,6 +106,11 @@ class WebScraper:
                 self._page.set_default_timeout(90000)
                 self._page.set_default_navigation_timeout(90000)
                 
+                # デスクトップ向けのイベントリスナーを追加
+                async def handle_dialog(dialog):
+                    await dialog.dismiss()
+                self._page.on('dialog', handle_dialog)
+                
                 async def log_request(request):
                     logger.debug(f"Request: {request.method} {request.url}")
                 self._page.on("request", log_request)
@@ -112,53 +124,25 @@ class WebScraper:
             await self._cleanup()
             return False
 
-    async def _cleanup(self):
-        """リソースの解放処理"""
-        logger.info("クリーンアップを開始...")
-        try:
-            if self._page:
-                logger.info("ページを閉じています...")
-                await self._page.close()
-                self._page = None
-
-            if self._context:
-                logger.info("コンテキストを閉じています...")
-                await self._context.close()
-                self._context = None
-
-            if self._browser:
-                logger.info("ブラウザを閉じています...")
-                await self._browser.close()
-                self._browser = None
-
-            if self._playwright:
-                logger.info("Playwright を停止しています...")
-                await self._playwright.stop()
-                self._playwright = None
-
-        except Exception as e:
-            logger.error(f"クリーンアップ中にエラーが発生: {str(e)}")
-        finally:
-            logger.info("クリーンアップ完了")
-
     async def wait_for_content(self) -> bool:
         try:
             await self._page.wait_for_load_state('domcontentloaded')
             await self._page.wait_for_load_state('networkidle')
             
-            try:
-                await self._page.wait_for_selector('.playControls__elements', timeout=10000)
-            except:
-                logger.info("プレーヤー要素が見つかりませんでした")
-            
+            # スクロール処理を改善（デスクトップ向け）
             await self._page.evaluate("""
-                window.scrollTo({
-                    top: document.body.scrollHeight,
-                    behavior: 'smooth'
-                });
+                const scroll = async () => {
+                    const distance = 100;
+                    const delay = 100;
+                    while (window.scrollY + window.innerHeight < document.documentElement.scrollHeight) {
+                        window.scrollBy(0, distance);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+                scroll();
             """)
             
-            await asyncio.sleep(5)
+            await asyncio.sleep(3)  # スクロール完了を待機
             return True
         except Exception as e:
             logger.error(f"コンテンツの待機中にエラー: {str(e)}")
@@ -225,12 +209,28 @@ class WebScraper:
             meta_time = soup.new_tag('meta')
             meta_time['name'] = 'scraping-time'
             meta_time['content'] = datetime.now().isoformat()
-            soup.head.append(meta_time)
+            if soup.head:
+                soup.head.append(meta_time)
+            else:
+                head = soup.new_tag('head')
+                head.append(meta_time)
+                soup.html.insert(0, head)
             
+            # デスクトップ向けのリソースパス修正
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
-                for attr in ['src', 'href', 'data-src']:
+                for attr in ['src', 'href', 'data-src', 'srcset']:
                     if tag.get(attr):
-                        tag[attr] = urljoin(url, tag[attr])
+                        if attr == 'srcset':
+                            sources = tag[attr].split(',')
+                            new_sources = []
+                            for source in sources:
+                                parts = source.strip().split()
+                                if len(parts) >= 1:
+                                    parts[0] = urljoin(url, parts[0])
+                                    new_sources.append(' '.join(parts))
+                            tag[attr] = ', '.join(new_sources)
+                        else:
+                            tag[attr] = urljoin(url, tag[attr])
 
             filename = "index.html" if parsed_url.path.strip('/') == "" else parsed_url.path.strip('/').replace('/', '_') + ".html"
             filepath = os.path.join(domain_dir, filename)
