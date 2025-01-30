@@ -78,7 +78,16 @@ jobs:
         run: |
           playwright --version
           playwright install-deps firefox
-          python -c "from playwright.sync_api import sync_playwright; with sync_playwright() as p: browser = p.firefox.launch(); browser.close()"
+          echo "import asyncio
+          from playwright.async_api import async_playwright
+          
+          async def test_browser():
+              async with async_playwright() as p:
+                  browser = await p.firefox.launch()
+                  await browser.close()
+          
+          asyncio.run(test_browser())" > test_playwright.py
+          python test_playwright.py
 
       - name: Prepare output directory
         run: |
