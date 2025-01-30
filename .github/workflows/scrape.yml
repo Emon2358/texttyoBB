@@ -17,20 +17,20 @@ jobs:
     steps:
       # Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v4  # Updated to latest version
+        uses: actions/checkout@v4
       
       # Set up Python environment
       - name: Set up Python
-        uses: actions/setup-python@v4 # Updated to latest version
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.x'  # Specify a specific Python version
-          cache: 'pip'  # Enable pip caching for faster dependency installation
+          python-version: '3.x'
+          cache: 'pip'
       
       # Install project dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Recommended: use a requirements.txt file
+          pip install aiohttp beautifulsoup4
       
       # Ensure url_patterns.json exists
       - name: Prepare URL patterns file
@@ -47,8 +47,6 @@ jobs:
       
       # Commit and push any changes
       - name: Commit and push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
@@ -66,4 +64,5 @@ jobs:
             git push
           else
             echo "No changes to commit"
-          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
