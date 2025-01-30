@@ -1,112 +1,69 @@
-name: Web Scraper
+name: Scrape and Save Page
 
+# Trigger workflow manually with a target URL input
 on:
   workflow_dispatch:
     inputs:
-      urls:
-        description: 'URLs to scrape (comma-separated)'
+      target_url:
+        description: 'Target URL to scrape'
         required: true
         type: string
-      output_branch:
-        description: 'Branch to save scraped content'
-        required: false
-        default: 'scraped-content'
-        type: string
 
+# Define job for scraping
 jobs:
-  scrape:
+  scrape-page:
     runs-on: ubuntu-latest
     
     steps:
+      # Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          # 全ブランチ履歴를 가져오기
-          fetch-depth: 0
+        uses: actions/checkout@v4  # Updated to latest version
       
+      # Set up Python environment
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5  # Updated to latest version
         with:
-          python-version: '3.11'
+          python-version: '3.11'  # Specify a specific Python version
+          cache: 'pip'  # Enable pip caching for faster dependency installation
       
-      - name: Set up Chrome
-        uses: browser-actions/setup-chrome@v1
-      
+      # Install project dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install aiohttp beautifulsoup4 selenium webdriver-manager
+          pip install -r requirements.txt  # Recommended: use a requirements.txt file
       
-      - name: Create output directories
+      # Ensure url_patterns.json exists
+      - name: Prepare URL patterns file
         run: |
-          mkdir -p scraped_content/pages
-          mkdir -p scraped_content/metadata
+          touch url_patterns.json
+          [ -s url_patterns.json ] || echo "{}" > url_patterns.json
       
-      - name: Run Web Scraper
+      # Run the scraper with the provided URL
+      - name: Scrape and save page
         env:
-          URLS: ${{ github.event.inputs.urls }}
+          TARGET_URL: ${{ github.event.inputs.target_url }}
         run: |
-          # Split comma-separated URLs
-          IFS=',' read -ra URL_ARRAY <<< "$URLS"
-          
-          # Run scraper with URLs and specify output directory
-          python scraper.py "${URL_ARRAY[@]}" scraped_content/pages
+          python scraper.py "$TARGET_URL"
       
-      - name: Prepare HTML Archive
-        run: |
-          # Create main index file
-          echo "<!DOCTYPE html>" > scraped_content/index.html
-          echo "<html lang='en'>" >> scraped_content/index.html
-          echo "<head><meta charset='UTF-8'><title>Scraped Content Archive</title></head>" >> scraped_content/index.html
-          echo "<body><h1>Scraped Content Archive</h1><ul>" >> scraped_content/index.html
-          
-          # Loop through scraped pages
-          for file in scraped_content/pages/*.html; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file")
-              echo "<li><a href='pages/$filename'>$filename</a></li>" >> scraped_content/index.html
-            fi
-          done
-          
-          echo "</ul></body></html>" >> scraped_content/index.html
-      
-      - name: Create Metadata Summary
-        run: |
-          echo "# Scraping Metadata" > scraped_content/METADATA.md
-          echo "" >> scraped_content/METADATA.md
-          echo "## Scraped URLs" >> scraped_content/METADATA.md
-          echo "\`\`\`" >> scraped_content/METADATA.md
-          echo "${{ github.event.inputs.urls }}" >> scraped_content/METADATA.md
-          echo "\`\`\`" >> scraped_content/METADATA.md
-          echo "" >> scraped_content/METADATA.md
-          echo "## Scraping Details" >> scraped_content/METADATA.md
-          echo "- Date: $(date)" >> scraped_content/METADATA.md
-          echo "- Workflow Run ID: ${{ github.run_id }}" >> scraped_content/METADATA.md
-      
-      - name: Configure Git
-        run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-      
-      - name: Create and Push to Scraped Content Branch
+      # Commit and push any changes
+      - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Create a new branch or switch to existing branch
-          git checkout -B ${{ github.event.inputs.output_branch }}
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
           
-          # Add all scraped content
-          git add scraped_content/
+          # Ensure pages directory exists
+          mkdir -p pages
           
-          # Commit changes
-          git commit -m "Scrape web content at $(date)" -a || echo "No changes to commit"
+          # Stage relevant files
+          git add -f url_patterns.json
+          git add -f pages/
           
-          # Force push to remote branch
-          git push -f origin ${{ github.event.inputs.output_branch }}
-      
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: scraped-content
-          path: scraped_content/
-          retention-days: 7
+          # Check for changes and commit if needed
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git commit -m "Scrape: ${{ github.event.inputs.target_url }}"
+            git push
+          else
+            echo "No changes to commit"
+          fi
