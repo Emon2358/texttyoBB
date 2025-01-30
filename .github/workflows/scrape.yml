@@ -47,10 +47,30 @@ jobs:
           # Run scraper with URLs
           python scraper.py "${URL_ARRAY[@]}"
       
+      - name: Prepare HTML Archive
+        run: |
+          # Create an HTML file to archive the scraped content
+          echo "<!DOCTYPE html>" > archive.html
+          echo "<html lang='en'>" >> archive.html
+          echo "<head><meta charset='UTF-8'><title>Scraped Content</title></head>" >> archive.html
+          echo "<body><h1>Scraped Content</h1>" >> archive.html
+          
+          # Loop through the scraped pages and add them to the archive
+          for file in pages/*.html; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              echo "<h2>${filename}</h2>" >> archive.html
+              echo "<iframe src='$file' style='width:100%; height:600px; border:none;'></iframe>" >> archive.html
+            fi
+          done
+          
+          echo "</body></html>" >> archive.html
+      
       - name: Check scraped content
         run: |
           echo "Scraped files:"
           ls -R pages/
+          ls -R archive.html
       
       - name: Create scraped content branch
         run: |
@@ -60,11 +80,12 @@ jobs:
           # Create or switch to the output branch
           git checkout -B ${{ github.event.inputs.output_branch }}
           
-          # Add scraped content
+          # Add scraped content and archive
           git add pages/
+          git add archive.html
           
           # Commit changes
-          git commit -m "Scrape web content at $(date)" || echo "No changes to commit"
+          git commit -m "Scraped web content at $(date)" || echo "No changes to commit"
           
           # Push to remote branch
           git push -f origin ${{ github.event.inputs.output_branch }}
@@ -72,6 +93,8 @@ jobs:
       - name: Upload scraped content
         uses: actions/upload-artifact@v3
         with:
-          name: scraped-pages
-          path: pages/
+          name: scraped-sites
+          path: |
+            pages/
+            archive.html
           retention-days: 7
