@@ -9,12 +9,16 @@ import logging
 from datetime import datetime
 import random
 import urllib.parse
+import sys
 
 # Selenium関連のインポート
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+
+# スクレイピング出力ディレクトリをコマンドライン引数から受け取る
+OUTPUT_DIR = sys.argv[-1] if len(sys.argv) > 2 else 'pages'
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -135,34 +139,7 @@ class WebScraper:
         # ドメイン名をサイト名として使用
         return re.sub(r'[^\w\-_\.]', '_', domain)[:50]
 
-    async def normalize_url(self, url: str) -> str:
-        """URLを正規化して最新のパターンに変換"""
-        parsed = urlparse(url)
-        path = parsed.path
-        
-        for pattern, info in self.url_patterns.items():
-            if self.match_pattern(path, pattern):
-                return info['example_new']
-        
-        return url
-
-    def match_pattern(self, path: str, pattern: str) -> bool:
-        """パスがパターンにマッチするか確認"""
-        pattern_parts = pattern.split('/')
-        path_parts = path.split('/')
-        
-        if len(pattern_parts) != len(path_parts):
-            return False
-            
-        for pattern_part, path_part in zip(pattern_parts, path_parts):
-            if pattern_part in ['{id}', '{date}', '*']:
-                continue
-            if pattern_part != path_part:
-                return False
-        
-        return True
-
-    async def save_page(self, url: str, output_dir: str = 'pages'):
+    async def save_page(self, url: str, output_dir: str = OUTPUT_DIR):
         """ページを保存する高度な実装"""
         try:
             os.makedirs(output_dir, exist_ok=True)
@@ -194,7 +171,7 @@ class WebScraper:
             }
             
             # ファイル書き込み
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath,  'w', encoding='utf-8') as f:
                 f.write(html_content)
             
             # メタデータ保存
@@ -274,13 +251,11 @@ async def main(urls):
             scraper.close_driver()
 
 if __name__ == "__main__":
-    import sys
-    
     # ロギングの設定をさらに詳細に
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
- handlers=[
+        handlers=[
             logging.StreamHandler(),
             logging.FileHandler('scraper.log', encoding='utf-8')
         ]
