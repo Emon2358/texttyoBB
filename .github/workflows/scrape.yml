@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          # 全ブランチ履歴를 가져오기
+          fetch-depth: 0
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -34,8 +37,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install aiohttp beautifulsoup4 selenium webdriver-manager
       
-      - name: Create output directory
-        run: mkdir -p pages
+      - name: Create output directories
+        run: |
+          mkdir -p scraped_content/pages
+          mkdir -p scraped_content/metadata
       
       - name: Run Web Scraper
         env:
@@ -44,51 +49,64 @@ jobs:
           # Split comma-separated URLs
           IFS=',' read -ra URL_ARRAY <<< "$URLS"
           
-          # Run scraper with URLs
-          python scraper.py "${URL_ARRAY[@]}"
+          # Run scraper with URLs and specify output directory
+          python scraper.py "${URL_ARRAY[@]}" scraped_content/pages
       
       - name: Prepare HTML Archive
         run: |
-          # Create an HTML file to archive the scraped content
-          echo "<!DOCTYPE html>" > archive.html
-          echo "<html lang='en'>" >> archive.html
-          echo "<head><meta charset='UTF-8'><title>Scraped Content</title></head>" >> archive.html
-          echo "<body><h1>Scraped Content</h1>" >> archive.html
+          # Create main index file
+          echo "<!DOCTYPE html>" > scraped_content/index.html
+          echo "<html lang='en'>" >> scraped_content/index.html
+          echo "<head><meta charset='UTF-8'><title>Scraped Content Archive</title></head>" >> scraped_content/index.html
+          echo "<body><h1>Scraped Content Archive</h1><ul>" >> scraped_content/index.html
           
-          # Loop through the scraped pages and add them to the archive
-          for file in pages/*.html; do
+          # Loop through scraped pages
+          for file in scraped_content/pages/*.html; do
             if [ -f "$file" ]; then
               filename=$(basename "$file")
-              echo "<h2>${filename}</h2>" >> archive.html
-              cat "$file" >> archive.html  # Append the content of the scraped HTML file
+              echo "<li><a href='pages/$filename'>$filename</a></li>" >> scraped_content/index.html
             fi
           done
           
-          echo "</body></html>" >> archive.html
+          echo "</ul></body></html>" >> scraped_content/index.html
       
-      - name: Commit and Push
+      - name: Create Metadata Summary
+        run: |
+          echo "# Scraping Metadata" > scraped_content/METADATA.md
+          echo "" >> scraped_content/METADATA.md
+          echo "## Scraped URLs" >> scraped_content/METADATA.md
+          echo "\`\`\`" >> scraped_content/METADATA.md
+          echo "${{ github.event.inputs.urls }}" >> scraped_content/METADATA.md
+          echo "\`\`\`" >> scraped_content/METADATA.md
+          echo "" >> scraped_content/METADATA.md
+          echo "## Scraping Details" >> scraped_content/METADATA.md
+          echo "- Date: $(date)" >> scraped_content/METADATA.md
+          echo "- Workflow Run ID: ${{ github.run_id }}" >> scraped_content/METADATA.md
+      
+      - name: Configure Git
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          
-          # Create or switch to the output branch
+      
+      - name: Create and Push to Scraped Content Branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a new branch or switch to existing branch
           git checkout -B ${{ github.event.inputs.output_branch }}
           
-          # Add scraped content and archive
-          git add pages/
-          git add archive.html
+          # Add all scraped content
+          git add scraped_content/
           
           # Commit changes
-          git commit -m "Scraped web content at $(date)" || echo "No changes to commit"
+          git commit -m "Scrape web content at $(date)" -a || echo "No changes to commit"
           
-          # Push to remote branch
+          # Force push to remote branch
           git push -f origin ${{ github.event.inputs.output_branch }}
       
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: scraped-sites
-          path: |
-            pages/
-            archive.html
+          name: scraped-content
+          path: scraped_content/
           retention-days: 7
