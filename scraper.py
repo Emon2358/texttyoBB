@@ -33,13 +33,15 @@ class WebScraper:
                 '--disable-dev-shm-usage',
                 '--disable-accelerated-2d-canvas',
                 '--disable-gpu',
-                '--headless=new'  # 新しいヘッドレスモードを使用
+                '--headless=new',
+                '--disable-web-security',
+                '--disable-features=IsolateOrigins,site-per-process'
             ]
 
             self._browser = await self._playwright.firefox.launch(
                 headless=True,
                 args=launch_args,
-                timeout=60000,
+                timeout=90000,
             )
             return True
         except Exception as e:
@@ -53,10 +55,19 @@ class WebScraper:
                 return False
 
             self._context = await self._browser.new_context(
-                viewport={'width': 1920, 'height': 1080},
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
-                bypass_csp=True
+                viewport={'width': 390, 'height': 844},  # iPhoneに近いビューポート
+                user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+                bypass_csp=True,
+                accept_downloads=False
             )
+            
+            # JavaScriptを有効化
+            await self._context.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+            """)
+            
             return True
         except Exception as e:
             logger.error(f"コンテキストの初期化に失敗: {str(e)}")
@@ -86,9 +97,14 @@ class WebScraper:
                 if not self._page:
                     raise Exception("ページの作成に失敗")
 
-                # タイムアウトの設定
-                self._page.set_default_timeout(60000)
-                self._page.set_default_navigation_timeout(60000)
+                # タイムアウトとリクエストの設定
+                self._page.set_default_timeout(90000)
+                self._page.set_default_navigation_timeout(90000)
+                
+                # リクエストの監視を設定
+                async def log_request(request):
+                    logger.debug(f"Request: {request.method} {request.url}")
+                self._page.on("request", log_request)
                 
                 logger.info("セットアップが正常に完了")
                 return True
@@ -99,34 +115,35 @@ class WebScraper:
             await self.cleanup()
             return False
 
-    async def cleanup(self):
-        """リソースの解放処理"""
-        logger.info("クリーンアップを開始...")
+    async def wait_for_content(self) -> bool:
+        """ページのコンテンツが読み込まれるのを待機"""
         try:
-            if self._page:
-                logger.info("ページを閉じています...")
-                await self._page.close()
-                self._page = None
-
-            if self._context:
-                logger.info("コンテキストを閉じています...")
-                await self._context.close()
-                self._context = None
-
-            if self._browser:
-                logger.info("ブラウザを閉じています...")
-                await self._browser.close()
-                self._browser = None
-
-            if self._playwright:
-                logger.info("Playwright を停止しています...")
-                await self._playwright.stop()
-                self._playwright = None
-
+            # DOMの読み込み完了を待機
+            await self._page.wait_for_load_state('domcontentloaded')
+            
+            # ネットワークのアイドル状態を待機
+            await self._page.wait_for_load_state('networkidle')
+            
+            # プレーヤーの要素が表示されるのを待機
+            try:
+                await self._page.wait_for_selector('.playControls__elements', timeout=10000)
+            except:
+                logger.info("プレーヤー要素が見つかりませんでした")
+            
+            # 追加のスクロール処理
+            await self._page.evaluate("""
+                window.scrollTo({
+                    top: document.body.scrollHeight,
+                    behavior: 'smooth'
+                });
+            """)
+            
+            await asyncio.sleep(5)  # コンテンツの読み込みを待機
+            
+            return True
         except Exception as e:
-            logger.error(f"クリーンアップ中にエラーが発生: {str(e)}")
-        finally:
-            logger.info("クリーンアップ完了")
+            logger.error(f"コンテンツの待機中にエラー: {str(e)}")
+            return False
 
     async def scrape_page(self, url: str) -> Optional[str]:
         """ページのスクレイピング処理"""
@@ -136,12 +153,12 @@ class WebScraper:
 
         try:
             logger.info(f"{url} にアクセス中...")
-            await asyncio.sleep(random.uniform(2, 4))
-
+            
+            # ページに移動
             response = await self._page.goto(
                 url,
-                wait_until='networkidle',
-                timeout=60000
+                wait_until='domcontentloaded',
+                timeout=90000
             )
 
             if not response:
@@ -152,23 +169,19 @@ class WebScraper:
                 logger.error(f"エラーステータス: {response.status}")
                 return None
 
-            await asyncio.sleep(random.uniform(3, 5))
-            
-            # JavaScriptの実行を待機
-            await self._page.wait_for_load_state('domcontentloaded')
-            await self._page.wait_for_load_state('networkidle')
-            
-            # スクロール処理
-            await self._page.evaluate("""
-                window.scrollBy({
-                    top: document.body.scrollHeight,
-                    behavior: 'smooth'
-                });
-            """)
-            
-            await asyncio.sleep(random.uniform(2, 4))
-            
+            # コンテンツの読み込みを待機
+            if not await self.wait_for_content():
+                logger.error("コンテンツの読み込みに失敗")
+                return None
+
+            # ページのHTMLを取得
             content = await self._page.content()
+            
+            if not content:
+                logger.error("HTMLコンテンツが空です")
+                return None
+                
+            logger.info("ページのコンテンツを取得しました")
             return content
 
         except Exception as e:
@@ -192,6 +205,14 @@ class WebScraper:
 
             # HTML の整形処理
             soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # メタ情報の追加
+            meta_time = soup.new_tag('meta')
+            meta_time['name'] = 'scraping-time'
+            meta_time['content'] = datetime.now().isoformat()
+            soup.head.append(meta_time)
+            
+            # リソースのURL修正
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 for attr in ['src', 'href', 'data-src']:
                     if tag.get(attr):
