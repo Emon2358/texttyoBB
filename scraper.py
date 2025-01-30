@@ -55,13 +55,12 @@ class WebScraper:
                 return False
 
             self._context = await self._browser.new_context(
-                viewport={'width': 390, 'height': 844},  # iPhoneに近いビューポート
+                viewport={'width': 390, 'height': 844},
                 user_agent='Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
                 bypass_csp=True,
                 accept_downloads=False
             )
             
-            # JavaScriptを有効化
             await self._context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
@@ -97,11 +96,9 @@ class WebScraper:
                 if not self._page:
                     raise Exception("ページの作成に失敗")
 
-                # タイムアウトとリクエストの設定
                 self._page.set_default_timeout(90000)
                 self._page.set_default_navigation_timeout(90000)
                 
-                # リクエストの監視を設定
                 async def log_request(request):
                     logger.debug(f"Request: {request.method} {request.url}")
                 self._page.on("request", log_request)
@@ -112,25 +109,48 @@ class WebScraper:
 
         except Exception as e:
             logger.error(f"セットアップ中にエラーが発生: {str(e)}")
-            await self.cleanup()
+            await self._cleanup()
             return False
 
-    async def wait_for_content(self) -> bool:
-        """ページのコンテンツが読み込まれるのを待機"""
+    async def _cleanup(self):
+        """リソースの解放処理"""
+        logger.info("クリーンアップを開始...")
         try:
-            # DOMの読み込み完了を待機
+            if self._page:
+                logger.info("ページを閉じています...")
+                await self._page.close()
+                self._page = None
+
+            if self._context:
+                logger.info("コンテキストを閉じています...")
+                await self._context.close()
+                self._context = None
+
+            if self._browser:
+                logger.info("ブラウザを閉じています...")
+                await self._browser.close()
+                self._browser = None
+
+            if self._playwright:
+                logger.info("Playwright を停止しています...")
+                await self._playwright.stop()
+                self._playwright = None
+
+        except Exception as e:
+            logger.error(f"クリーンアップ中にエラーが発生: {str(e)}")
+        finally:
+            logger.info("クリーンアップ完了")
+
+    async def wait_for_content(self) -> bool:
+        try:
             await self._page.wait_for_load_state('domcontentloaded')
-            
-            # ネットワークのアイドル状態を待機
             await self._page.wait_for_load_state('networkidle')
             
-            # プレーヤーの要素が表示されるのを待機
             try:
                 await self._page.wait_for_selector('.playControls__elements', timeout=10000)
             except:
                 logger.info("プレーヤー要素が見つかりませんでした")
             
-            # 追加のスクロール処理
             await self._page.evaluate("""
                 window.scrollTo({
                     top: document.body.scrollHeight,
@@ -138,8 +158,7 @@ class WebScraper:
                 });
             """)
             
-            await asyncio.sleep(5)  # コンテンツの読み込みを待機
-            
+            await asyncio.sleep(5)
             return True
         except Exception as e:
             logger.error(f"コンテンツの待機中にエラー: {str(e)}")
@@ -154,7 +173,6 @@ class WebScraper:
         try:
             logger.info(f"{url} にアクセス中...")
             
-            # ページに移動
             response = await self._page.goto(
                 url,
                 wait_until='domcontentloaded',
@@ -169,12 +187,10 @@ class WebScraper:
                 logger.error(f"エラーステータス: {response.status}")
                 return None
 
-            # コンテンツの読み込みを待機
             if not await self.wait_for_content():
                 logger.error("コンテンツの読み込みに失敗")
                 return None
 
-            # ページのHTMLを取得
             content = await self._page.content()
             
             if not content:
@@ -190,6 +206,7 @@ class WebScraper:
 
     async def save_page(self, url: str, output_dir: str = 'sites') -> bool:
         """ページの保存処理"""
+        success = False
         try:
             if not await self.setup():
                 raise Exception("Playwright のセットアップに失敗")
@@ -203,16 +220,13 @@ class WebScraper:
             if not html_content:
                 raise Exception("コンテンツの取得に失敗")
 
-            # HTML の整形処理
             soup = BeautifulSoup(html_content, 'html.parser')
             
-            # メタ情報の追加
             meta_time = soup.new_tag('meta')
             meta_time['name'] = 'scraping-time'
             meta_time['content'] = datetime.now().isoformat()
             soup.head.append(meta_time)
             
-            # リソースのURL修正
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 for attr in ['src', 'href', 'data-src']:
                     if tag.get(attr):
@@ -225,6 +239,7 @@ class WebScraper:
                 f.write(str(soup))
 
             logger.info(f"ページを {filepath} に保存しました")
+            success = True
             return True
 
         except Exception as e:
@@ -232,7 +247,9 @@ class WebScraper:
             return False
 
         finally:
-            await self.cleanup()
+            await self._cleanup()
+            if not success:
+                logger.error("スクレイピングは失敗しました")
 
 async def main():
     if len(sys.argv) != 2:
@@ -242,8 +259,8 @@ async def main():
     url = sys.argv[1]
     logger.info(f"スクレイピングを開始: {url}")
     
+    scraper = WebScraper(url)
     try:
-        scraper = WebScraper(url)
         success = await scraper.save_page(url)
         return 0 if success else 1
     except Exception as e:
