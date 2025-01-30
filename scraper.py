@@ -36,10 +36,10 @@ class WebScraper:
                 '--headless=new',
                 '--disable-web-security',
                 '--disable-features=IsolateOrigins,site-per-process',
-                '--window-size=1920,1080'  # デスクトップサイズのウィンドウ
+                '--window-size=1920,1080'
             ]
 
-            self._browser = await self._playwright.chromium.launch(  # Firefoxからより一般的なChromiumに変更
+            self._browser = await self._playwright.chromium.launch(
                 headless=True,
                 args=launch_args,
                 timeout=90000,
@@ -56,19 +56,17 @@ class WebScraper:
                 return False
 
             self._context = await self._browser.new_context(
-                viewport={'width': 1920, 'height': 1080},  # デスクトップサイズのビューポート
-                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',  # デスクトップのUser-Agent
+                viewport={'width': 1920, 'height': 1080},
+                user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 bypass_csp=True,
-                accept_downloads=True  # デスクトップではダウンロードを許可
+                accept_downloads=True
             )
             
-            # Webdriverの検出を回避
             await self._context.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
                 });
                 
-                // プラットフォーム情報をデスクトップに設定
                 Object.defineProperty(navigator, 'platform', {
                     get: () => 'Win32'
                 });
@@ -106,7 +104,6 @@ class WebScraper:
                 self._page.set_default_timeout(90000)
                 self._page.set_default_navigation_timeout(90000)
                 
-                # デスクトップ向けのイベントリスナーを追加
                 async def handle_dialog(dialog):
                     await dialog.dismiss()
                 self._page.on('dialog', handle_dialog)
@@ -121,7 +118,7 @@ class WebScraper:
 
         except Exception as e:
             logger.error(f"セットアップ中にエラーが発生: {str(e)}")
-            await self._cleanup()
+            await self.cleanup()  # _cleanup から cleanup に変更
             return False
 
     async def wait_for_content(self) -> bool:
@@ -129,7 +126,6 @@ class WebScraper:
             await self._page.wait_for_load_state('domcontentloaded')
             await self._page.wait_for_load_state('networkidle')
             
-            # スクロール処理を改善（デスクトップ向け）
             await self._page.evaluate("""
                 const scroll = async () => {
                     const distance = 100;
@@ -142,7 +138,7 @@ class WebScraper:
                 scroll();
             """)
             
-            await asyncio.sleep(3)  # スクロール完了を待機
+            await asyncio.sleep(3)
             return True
         except Exception as e:
             logger.error(f"コンテンツの待機中にエラー: {str(e)}")
@@ -188,6 +184,35 @@ class WebScraper:
             logger.error(f"スクレイピング中にエラーが発生: {str(e)}")
             return None
 
+    async def cleanup(self):  # メソッド名を cleanup に変更
+        """リソースの解放処理"""
+        logger.info("クリーンアップを開始...")
+        try:
+            if self._page:
+                logger.info("ページを閉じています...")
+                await self._page.close()
+                self._page = None
+
+            if self._context:
+                logger.info("コンテキストを閉じています...")
+                await self._context.close()
+                self._context = None
+
+            if self._browser:
+                logger.info("ブラウザを閉じています...")
+                await self._browser.close()
+                self._browser = None
+
+            if self._playwright:
+                logger.info("Playwright を停止しています...")
+                await self._playwright.stop()
+                self._playwright = None
+
+        except Exception as e:
+            logger.error(f"クリーンアップ中にエラーが発生: {str(e)}")
+        finally:
+            logger.info("クリーンアップ完了")
+
     async def save_page(self, url: str, output_dir: str = 'sites') -> bool:
         """ページの保存処理"""
         success = False
@@ -216,7 +241,6 @@ class WebScraper:
                 head.append(meta_time)
                 soup.html.insert(0, head)
             
-            # デスクトップ向けのリソースパス修正
             for tag in soup.find_all(['img', 'video', 'iframe', 'source', 'link', 'script']):
                 for attr in ['src', 'href', 'data-src', 'srcset']:
                     if tag.get(attr):
@@ -247,7 +271,7 @@ class WebScraper:
             return False
 
         finally:
-            await self._cleanup()
+            await self.cleanup()  # _cleanup から cleanup に変更
             if not success:
                 logger.error("スクレイピングは失敗しました")
 
