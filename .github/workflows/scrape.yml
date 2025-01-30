@@ -1,14 +1,20 @@
-name: Scrape and Save Page
+name: Web Scraper
+
 on:
   workflow_dispatch:
     inputs:
-      target_url:
-        description: 'Target URL to scrape'
+      urls:
+        description: 'URLs to scrape (comma-separated)'
         required: true
+        type: string
+      output_branch:
+        description: 'Branch to save scraped content'
+        required: false
+        default: 'scraped-content'
         type: string
 
 jobs:
-  scrape-page:
+  scrape:
     runs-on: ubuntu-latest
     
     steps:
@@ -18,39 +24,54 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
+      
+      - name: Set up Chrome
+        uses: browser-actions/setup-chrome@v1
       
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install aiohttp beautifulsoup4
+          pip install aiohttp beautifulsoup4 selenium webdriver-manager
       
-      - name: Create initial url_patterns.json if not exists
+      - name: Create output directory
+        run: mkdir -p pages
+      
+      - name: Run Web Scraper
+        env:
+          URLS: ${{ github.event.inputs.urls }}
         run: |
-          if [ ! -f url_patterns.json ]; then
-            echo "{}" > url_patterns.json
-          fi
+          # Split comma-separated URLs
+          IFS=',' read -ra URL_ARRAY <<< "$URLS"
+          
+          # Run scraper with URLs
+          python scraper.py "${URL_ARRAY[@]}"
       
-      - name: Scrape and save page
+      - name: Check scraped content
         run: |
-          python scraper.py "${{ github.event.inputs.target_url }}"
+          echo "Scraped files:"
+          ls -R pages/
       
-      - name: Commit and push changes
+      - name: Create scraped content branch
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           
-          # Create pages directory if it doesn't exist
-          mkdir -p pages
+          # Create or switch to the output branch
+          git checkout -B ${{ github.event.inputs.output_branch }}
           
-          # Add only existing files
-          git add -f url_patterns.json
-          git add -f pages/
+          # Add scraped content
+          git add pages/
           
-          # Check if there are any changes to commit
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update scraped page from ${{ github.event.inputs.target_url }}"
-            git push
-          fi
+          # Commit changes
+          git commit -m "Scrape web content at $(date)" || echo "No changes to commit"
+          
+          # Push to remote branch
+          git push -f origin ${{ github.event.inputs.output_branch }}
+      
+      - name: Upload scraped content
+        uses: actions/upload-artifact@v3
+        with:
+          name: scraped-pages
+          path: pages/
+          retention-days: 7
