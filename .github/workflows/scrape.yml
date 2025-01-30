@@ -11,7 +11,7 @@ on:
 jobs:
   scrape-page:
     runs-on: ubuntu-latest
-    timeout-minutes: 10  # タイムアウトの設定
+    timeout-minutes: 10
     
     steps:
       - name: Checkout repository
@@ -51,12 +51,14 @@ jobs:
             libxfixes3 \
             libxrandr2 \
             libgbm1 \
-            libasound2 \
+            libasound2t64 \
             libpango-1.0-0 \
             libpangocairo-1.0-0 \
             libnspr4 \
             libnss3 \
-            libx11-xcb1
+            libx11-xcb1 \
+            libfontconfig1 \
+            libfreetype6
 
       - name: Cache Playwright browsers
         uses: actions/cache@v3
