@@ -10,6 +10,7 @@ on:
 jobs:
   scrape-page:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,14 +18,33 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'  # 明示的なバージョン指定
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgbm-dev \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libcups2 \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxfixes3 \
+            libxrandr2 \
+            libgbm1 \
+            libasound2 \
+            libpango-1.0-0 \
+            libpangocairo-1.0-0
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install playwright beautifulsoup4 asyncio
-          playwright install firefox
+          playwright install firefox --with-deps
           playwright install-deps firefox
 
       - name: Prepare URL patterns file
@@ -35,10 +55,12 @@ jobs:
       - name: Scrape and save page
         env:
           TARGET_URL: ${{ github.event.inputs.target_url }}
+          PYTHONUNBUFFERED: "1"
         run: |
           python scraper.py "$TARGET_URL"
 
       - name: Commit and push changes
+        if: success()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
