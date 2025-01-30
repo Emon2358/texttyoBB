@@ -1,4 +1,3 @@
-# scraper.py
 import asyncio
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
@@ -23,14 +22,20 @@ class WebScraper:
         self._browser = None
         self._context = None
         self._page = None
+        self._setup_complete = False
 
     async def setup(self):
         """Playwrightの初期化を確実に行う"""
+        if self._setup_complete:
+            return True
+
         logger.info("Starting Playwright setup...")
         try:
             self._playwright = await async_playwright().start()
+            if not self._playwright:
+                raise Exception("Failed to start Playwright")
+
             logger.info("Launching browser...")
-            
             launch_args = [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
@@ -47,6 +52,9 @@ class WebScraper:
                     "media.peerconnection.enabled": False
                 }
             )
+            
+            if not self._browser:
+                raise Exception("Failed to launch browser")
 
             logger.info("Creating browser context...")
             self._context = await self._browser.new_context(
@@ -59,8 +67,14 @@ class WebScraper:
                 }
             )
 
+            if not self._context:
+                raise Exception("Failed to create browser context")
+
             logger.info("Creating new page...")
             self._page = await self._context.new_page()
+            if not self._page:
+                raise Exception("Failed to create new page")
+
             await self._page.set_default_timeout(30000)
             await self._page.set_default_navigation_timeout(30000)
 
@@ -69,11 +83,12 @@ class WebScraper:
                 Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
             """)
 
+            self._setup_complete = True
             logger.info("Playwright setup completed successfully")
             return True
 
         except Exception as e:
-            logger.error(f"Error during setup: {e}")
+            logger.error(f"Error during setup: {str(e)}")
             await self.cleanup()
             return False
 
@@ -81,31 +96,33 @@ class WebScraper:
         """リソースの確実な解放"""
         logger.info("Starting cleanup...")
         try:
-            if self._page:
+            if hasattr(self, '_page') and self._page:
                 await self._page.close()
                 self._page = None
 
-            if self._context:
+            if hasattr(self, '_context') and self._context:
                 await self._context.close()
                 self._context = None
 
-            if self._browser:
+            if hasattr(self, '_browser') and self._browser:
                 await self._browser.close()
                 self._browser = None
 
-            if self._playwright:
+            if hasattr(self, '_playwright') and self._playwright:
                 await self._playwright.stop()
                 self._playwright = None
 
+            self._setup_complete = False
+
         except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
-        
-        logger.info("Cleanup completed")
+            logger.error(f"Error during cleanup: {str(e)}")
+        finally:
+            logger.info("Cleanup completed")
 
     async def scrape_page(self, url: str) -> str:
         """ページのスクレイピング"""
-        if not self._page:
-            raise Exception("Page is not initialized")
+        if not self._page or not self._setup_complete:
+            raise Exception("Page is not properly initialized")
 
         try:
             logger.info(f"Navigating to {url}")
@@ -136,10 +153,13 @@ class WebScraper:
             await asyncio.sleep(random.uniform(2, 4))
 
             html = await self._page.content()
+            if not html:
+                raise Exception("Failed to get page content")
+                
             return html
 
         except Exception as e:
-            logger.error(f"Error scraping page: {e}")
+            logger.error(f"Error scraping page: {str(e)}")
             raise
 
     async def save_page(self, url: str, output_dir: str = 'sites') -> bool:
@@ -173,7 +193,7 @@ class WebScraper:
             return True
 
         except Exception as e:
-            logger.error(f"Error saving page: {e}")
+            logger.error(f"Error saving page: {str(e)}")
             return False
 
         finally:
@@ -192,7 +212,7 @@ async def main():
         success = await scraper.save_page(url)
         return 0 if success else 1
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error(f"Fatal error: {str(e)}")
         return 1
 
 if __name__ == "__main__":
