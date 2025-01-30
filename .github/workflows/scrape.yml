@@ -11,67 +11,61 @@ on:
 jobs:
   scrape-page:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Checkout the repository
+      # リポジトリをチェックアウト
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      # Set up Python environment
+
+      # Python 環境をセットアップ
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
           cache: 'pip'
-      
-      # Install Chrome and ChromeDriver
+
+      # Chrome & ChromeDriver のインストール
       - name: Install Chrome and ChromeDriver
         run: |
           sudo apt-get update
+          sudo apt-get upgrade -y
           sudo apt-get install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f 3 | cut -d '.' -f 1)
-          wget -q "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION"
-          CHROMEDRIVER_VERSION=$(cat "LATEST_RELEASE_$CHROME_VERSION")
-          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-      
-      # Install project dependencies
+          python -m pip install --upgrade pip
+          pip install chromedriver-autoinstaller
+
+      # 依存関係のインストール
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install aiohttp beautifulsoup4 selenium webdriver_manager
-      
-      # Ensure url_patterns.json exists
+          pip install aiohttp beautifulsoup4 selenium webdriver_manager chromedriver-autoinstaller
+
+      # url_patterns.json を準備
       - name: Prepare URL patterns file
         run: |
           touch url_patterns.json
           [ -s url_patterns.json ] || echo "{}" > url_patterns.json
-      
-      # Run the scraper with the provided URL
+
+      # スクレイピングを実行
       - name: Scrape and save page
         env:
           TARGET_URL: ${{ github.event.inputs.target_url }}
         run: |
           python scraper.py "$TARGET_URL"
-      
-      # Commit and push any changes
+
+      # 変更をコミット & プッシュ
       - name: Commit and push changes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          
-          # Ensure sites directory exists
+
+          # sites ディレクトリを確保
           mkdir -p sites
-          
-          # Stage relevant files
-          git add -f url_patterns.json
-          git add -f sites/
-          
-          # Check for changes and commit if needed
+
+          # 変更をステージング
+          git add -f url_patterns.json sites/
+
+          # 変更がある場合のみコミット & プッシュ
           if [[ -n "$(git status --porcelain)" ]]; then
             git commit -m "Scrape: ${{ github.event.inputs.target_url }}"
             git push
