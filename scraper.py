@@ -7,12 +7,10 @@ import json
 import re
 import logging
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import chromedriver_autoinstaller  # 修正: 自動インストールを追加
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,34 +25,35 @@ class WebScraper:
         self.setup_selenium()
 
     def setup_selenium(self):
-        """Set up Selenium WebDriver with Chrome in headless mode."""
+        """ChromeDriver を自動インストールし、Selenium WebDriver をセットアップ"""
+        chromedriver_autoinstaller.install()  # 修正: ChromeDriver の自動インストール
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        
+
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.set_page_load_timeout(30)
 
     def cleanup(self):
-        """Clean up resources."""
+        """リソースの後処理"""
         if self.driver:
             self.driver.quit()
 
     def load_url_patterns(self):
-        """Load URL patterns from a JSON file."""
+        """URL パターンを JSON ファイルから読み込む"""
         if os.path.exists('url_patterns.json'):
             with open('url_patterns.json', 'r') as f:
                 self.url_patterns = json.load(f)
 
     def save_url_patterns(self):
-        """Save URL patterns to a JSON file."""
+        """URL パターンを JSON ファイルに保存"""
         with open('url_patterns.json', 'w') as f:
             json.dump(self.url_patterns, f, indent=2)
 
     def update_url_pattern(self, old_url: str, new_url: str):
-        """Register a new URL pattern."""
+        """新しい URL パターンを登録"""
         old_parsed = urlparse(old_url)
         new_parsed = urlparse(new_url)
 
@@ -70,7 +69,7 @@ class WebScraper:
         self.save_url_patterns()
 
     def create_url_pattern(self, old_path: str, new_path: str) -> str:
-        """Generate a URL pattern."""
+        """URL パターンを生成"""
         parts_old = old_path.split('/')
         parts_new = new_path.split('/')
 
@@ -88,7 +87,7 @@ class WebScraper:
         return '/'.join(pattern_parts)
 
     async def normalize_url(self, url: str) -> str:
-        """Normalize the URL to the latest pattern."""
+        """URL を正規化"""
         parsed = urlparse(url)
         path = parsed.path
 
@@ -99,7 +98,7 @@ class WebScraper:
         return url
 
     def match_pattern(self, path: str, pattern: str) -> bool:
-        """Check if the path matches the pattern."""
+        """パスがパターンにマッチするか確認"""
         pattern_parts = pattern.split('/')
         path_parts = path.split('/')
 
@@ -115,25 +114,19 @@ class WebScraper:
         return True
 
     async def scrape_page(self, url: str) -> str:
-        """Scrape the page using Selenium and return the HTML content."""
+        """Selenium を使ってページをスクレイピング"""
         try:
             self.driver.get(url)
-            
-            # Wait for dynamic content to load
-            time.sleep(5)  # Basic wait for dynamic content
-            
-            # Get the final HTML after JavaScript execution
+            time.sleep(5)  # JavaScript 実行のための待機
             html = self.driver.page_source
             soup = BeautifulSoup(html, 'html.parser')
 
-            # Update src attributes for media tags
             for tag in soup.find_all(['img', 'video', 'iframe', 'source']):
                 if tag.get('src'):
                     tag['src'] = urljoin(url, tag['src'])
                 if tag.get('data-src'):
                     tag['data-src'] = urljoin(url, tag['data-src'])
 
-            # Update href and src attributes for link and script tags
             for tag in soup.find_all(['link', 'script']):
                 if tag.get('href'):
                     tag['href'] = urljoin(url, tag['href'])
@@ -146,59 +139,31 @@ class WebScraper:
             return ""
 
     async def save_page(self, url: str, output_dir: str = 'sites'):
-        """Scrape the page and save it to a domain-based directory structure."""
+        """スクレイピングしたページを保存"""
         try:
-            # Normalize the URL
             normalized_url = await self.normalize_url(url)
             parsed_url = urlparse(normalized_url)
-            
-            # Create domain-based directory structure
             domain = parsed_url.netloc
             domain_dir = os.path.join(output_dir, domain)
             os.makedirs(domain_dir, exist_ok=True)
 
-            # Get the page content
             html_content = await self.scrape_page(normalized_url)
             if not html_content:
                 return
 
-            # Generate the filename
-            path_parts = parsed_url.path.strip('/').split('/')
-            if not path_parts or path_parts == ['']:
-                filename = 'index.html'
-            else:
-                filename = f"{path_parts[-1]}.html" if not path_parts[-1].endswith('.html') else path_parts[-1]
-                
-                # Create subdirectories if needed
-                if len(path_parts) > 1:
-                    subdir = os.path.join(domain_dir, *path_parts[:-1])
-                    os.makedirs(subdir, exist_ok=True)
-                    filepath = os.path.join(subdir, filename)
-                else:
-                    filepath = os.path.join(domain_dir, filename)
+            filename = "index.html" if parsed_url.path.strip('/') == "" else parsed_url.path.strip('/').replace('/', '_') + ".html"
+            filepath = os.path.join(domain_dir, filename)
 
-            # Save the file
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(html_content)
 
             logger.info(f"Saved page to {filepath}")
             return filepath
-        
-        except Exception as e:
-            logger.error(f"Error saving page {url}: {e}")
-            return None
-        
         finally:
             self.cleanup()
 
 if __name__ == "__main__":
     import sys
-
-    if len(sys.argv) != 2:
-        print("Usage: python scraper.py <url>")
-        sys.exit(1)
-
     url = sys.argv[1]
     scraper = WebScraper(url)
-
     asyncio.run(scraper.save_page(url))
