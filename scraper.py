@@ -7,6 +7,12 @@ import json
 import re
 import logging
 from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,7 +22,25 @@ class WebScraper:
         self.base_url = base_url
         self.session = None
         self.url_patterns = {}
+        self.driver = None
         self.load_url_patterns()
+        self.setup_selenium()
+
+    def setup_selenium(self):
+        """Set up Selenium WebDriver with Chrome in headless mode."""
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        
+        self.driver = webdriver.Chrome(options=chrome_options)
+        self.driver.set_page_load_timeout(30)
+
+    def cleanup(self):
+        """Clean up resources."""
+        if self.driver:
+            self.driver.quit()
 
     def load_url_patterns(self):
         """Load URL patterns from a JSON file."""
@@ -34,11 +58,9 @@ class WebScraper:
         old_parsed = urlparse(old_url)
         new_parsed = urlparse(new_url)
 
-        # Extract path patterns
         old_path = old_parsed.path
         new_path = new_parsed.path
 
-        # Create a pattern from the old and new paths
         pattern = self.create_url_pattern(old_path, new_path)
         self.url_patterns[pattern] = {
             'example_old': old_url,
@@ -93,56 +115,81 @@ class WebScraper:
         return True
 
     async def scrape_page(self, url: str) -> str:
-        """Scrape the page and return the HTML content."""
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url) as response:
-                    html = await response.text()
-                    soup = BeautifulSoup(html, 'html.parser')
+        """Scrape the page using Selenium and return the HTML content."""
+        try:
+            self.driver.get(url)
+            
+            # Wait for dynamic content to load
+            time.sleep(5)  # Basic wait for dynamic content
+            
+            # Get the final HTML after JavaScript execution
+            html = self.driver.page_source
+            soup = BeautifulSoup(html, 'html.parser')
 
-                    # Update src attributes for media tags
-                    for tag in soup.find_all(['img', 'video', 'iframe', 'source']):
-                        if tag.get('src'):
-                            tag['src'] = urljoin(url, tag['src'])
-                        if tag.get('data-src'):
-                            tag['data-src'] = urljoin(url, tag['data-src'])
+            # Update src attributes for media tags
+            for tag in soup.find_all(['img', 'video', 'iframe', 'source']):
+                if tag.get('src'):
+                    tag['src'] = urljoin(url, tag['src'])
+                if tag.get('data-src'):
+                    tag['data-src'] = urljoin(url, tag['data-src'])
 
-                    # Update href and src attributes for link and script tags
-                    for tag in soup.find_all(['link', 'script']):
-                        if tag.get('href'):
-                            tag['href'] = urljoin(url, tag['href'])
-                        if tag.get('src'):
-                            tag['src'] = urljoin(url, tag['src'])
+            # Update href and src attributes for link and script tags
+            for tag in soup.find_all(['link', 'script']):
+                if tag.get('href'):
+                    tag['href'] = urljoin(url, tag['href'])
+                if tag.get('src'):
+                    tag['src'] = urljoin(url, tag['src'])
 
-                    return str(soup)
-            except Exception as e:
-                logger.error(f"Error scraping {url}: {e}")
-                return ""
+            return str(soup)
+        except Exception as e:
+            logger.error(f"Error scraping {url}: {e}")
+            return ""
 
-    async def save_page(self, url: str, output_dir: str = 'pages'):
-        """Scrape the page and save it to a file."""
-        os.makedirs(output_dir, exist_ok=True)
+    async def save_page(self, url: str, output_dir: str = 'sites'):
+        """Scrape the page and save it to a domain-based directory structure."""
+        try:
+            # Normalize the URL
+            normalized_url = await self.normalize_url(url)
+            parsed_url = urlparse(normalized_url)
+            
+            # Create domain-based directory structure
+            domain = parsed_url.netloc
+            domain_dir = os.path.join(output_dir, domain)
+            os.makedirs(domain_dir, exist_ok=True)
 
-        # Normalize the URL
-        normalized_url = await self.normalize_url(url)
+            # Get the page content
+            html_content = await self.scrape_page(normalized_url)
+            if not html_content:
+                return
 
-        # Get the page content
-        html_content = await self.scrape_page(normalized_url)
-        if not html_content:
-            return
+            # Generate the filename
+            path_parts = parsed_url.path.strip('/').split('/')
+            if not path_parts or path_parts == ['']:
+                filename = 'index.html'
+            else:
+                filename = f"{path_parts[-1]}.html" if not path_parts[-1].endswith('.html') else path_parts[-1]
+                
+                # Create subdirectories if needed
+                if len(path_parts) > 1:
+                    subdir = os.path.join(domain_dir, *path_parts[:-1])
+                    os.makedirs(subdir, exist_ok=True)
+                    filepath = os.path.join(subdir, filename)
+                else:
+                    filepath = os.path.join(domain_dir, filename)
 
-        # Generate the filename
-        parsed = urlparse(normalized_url)
-        filename = re.sub(r'[^a-zA-Z0-9]', '_', parsed.path) or 'index'
-        filename = f"{filename}.html"
+            # Save the file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(html_content)
 
-        # Save the file
-        filepath = os.path.join(output_dir, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(html_content)
-
-        logger.info(f"Saved page to {filepath}")
-        return filepath
+            logger.info(f"Saved page to {filepath}")
+            return filepath
+        
+        except Exception as e:
+            logger.error(f"Error saving page {url}: {e}")
+            return None
+        
+        finally:
+            self.cleanup()
 
 if __name__ == "__main__":
     import sys
