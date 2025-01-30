@@ -32,12 +32,14 @@ class WebScraper:
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-accelerated-2d-canvas',
-                '--disable-gpu'
+                '--disable-gpu',
+                '--headless=new'  # 新しいヘッドレスモードを使用
             ]
 
             self._browser = await self._playwright.firefox.launch(
                 headless=True,
-                args=launch_args
+                args=launch_args,
+                timeout=60000,
             )
             return True
         except Exception as e:
@@ -47,6 +49,9 @@ class WebScraper:
     async def _init_context(self) -> bool:
         """ブラウザコンテキストの初期化を行う"""
         try:
+            if not self._browser:
+                return False
+
             self._context = await self._browser.new_context(
                 viewport={'width': 1920, 'height': 1080},
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) Firefox/121.0',
@@ -63,8 +68,9 @@ class WebScraper:
         try:
             if self._playwright is None:
                 self._playwright = await async_playwright().start()
-                if self._playwright is None:
-                    raise Exception("Playwright の起動に失敗")
+
+            if not self._playwright:
+                raise Exception("Playwright の起動に失敗")
 
             logger.info("ブラウザを起動中...")
             if not await self._init_browser():
@@ -75,16 +81,18 @@ class WebScraper:
                 raise Exception("コンテキストの初期化に失敗")
 
             logger.info("ページを作成中...")
-            self._page = await self._context.new_page()
-            if self._page is None:
-                raise Exception("ページの作成に失敗")
+            if self._context:
+                self._page = await self._context.new_page()
+                if not self._page:
+                    raise Exception("ページの作成に失敗")
 
-            # タイムアウトの設定
-            await self._page.set_default_timeout(60000)
-            await self._page.set_default_navigation_timeout(60000)
-
-            logger.info("セットアップが正常に完了")
-            return True
+                # タイムアウトの設定
+                self._page.set_default_timeout(60000)
+                self._page.set_default_navigation_timeout(60000)
+                
+                logger.info("セットアップが正常に完了")
+                return True
+            return False
 
         except Exception as e:
             logger.error(f"セットアップ中にエラーが発生: {str(e)}")
@@ -123,7 +131,8 @@ class WebScraper:
     async def scrape_page(self, url: str) -> Optional[str]:
         """ページのスクレイピング処理"""
         if not self._page:
-            raise Exception("ページが初期化されていません")
+            logger.error("ページが初期化されていません")
+            return None
 
         try:
             logger.info(f"{url} にアクセス中...")
@@ -136,12 +145,18 @@ class WebScraper:
             )
 
             if not response:
-                raise Exception("ページの応答がありません")
+                logger.error("ページの応答がありません")
+                return None
 
             if response.status >= 400:
-                raise Exception(f"エラーステータス: {response.status}")
+                logger.error(f"エラーステータス: {response.status}")
+                return None
 
             await asyncio.sleep(random.uniform(3, 5))
+            
+            # JavaScriptの実行を待機
+            await self._page.wait_for_load_state('domcontentloaded')
+            await self._page.wait_for_load_state('networkidle')
             
             # スクロール処理
             await self._page.evaluate("""
@@ -153,7 +168,8 @@ class WebScraper:
             
             await asyncio.sleep(random.uniform(2, 4))
             
-            return await self._page.content()
+            content = await self._page.content()
+            return content
 
         except Exception as e:
             logger.error(f"スクレイピング中にエラーが発生: {str(e)}")
