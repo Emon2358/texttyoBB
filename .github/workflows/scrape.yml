@@ -14,12 +14,17 @@ jobs:
     timeout-minutes: 10
     
     steps:
-      - name: Checkout repository
+      - name: リポジトリをチェックアウト
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # 完全な履歴を取得
 
-      - name: Set up Python
+      - name: Gitの設定
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Pythonをセットアップ
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -28,7 +33,7 @@ jobs:
             **/requirements.txt
             **/requirements-dev.txt
 
-      - name: System information
+      - name: システム情報表示
         run: |
           python -V
           pip -V
@@ -36,7 +41,7 @@ jobs:
           free -h
           df -h
 
-      - name: Install system dependencies
+      - name: システム依存関係のインストール
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -60,44 +65,24 @@ jobs:
             libfontconfig1 \
             libfreetype6
 
-      - name: Install Python dependencies
+      - name: Python依存関係のインストール
         run: |
           python -m pip install --upgrade pip
           pip install playwright beautifulsoup4 asyncio urllib3 requests
 
-      - name: Install Playwright and browsers
+      - name: Playwrightとブラウザのインストール
         run: |
           playwright install
           playwright install-deps firefox
           playwright install firefox
-          ls -la ~/.cache/ms-playwright/
-          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> $GITHUB_ENV
 
-      - name: Verify Playwright installation
-        run: |
-          playwright --version
-          python -c "
-          import asyncio
-          from playwright.async_api import async_playwright
-          
-          async def test_browser():
-              async with async_playwright() as p:
-                  browser = await p.firefox.launch(headless=True)
-                  context = await browser.new_context()
-                  page = await context.new_page()
-                  await page.goto('about:blank')
-                  await browser.close()
-          
-          asyncio.run(test_browser())
-          "
-
-      - name: Prepare output directory
+      - name: 出力ディレクトリの準備
         run: |
           mkdir -p sites
           touch url_patterns.json
           [ -s url_patterns.json ] || echo "{}" > url_patterns.json
 
-      - name: Scrape and save page
+      - name: ページのスクレイピング
         env:
           TARGET_URL: ${{ github.event.inputs.target_url }}
           PYTHONUNBUFFERED: "1"
@@ -106,7 +91,7 @@ jobs:
           echo "スクレイピングを開始: $TARGET_URL"
           python scraper.py "$TARGET_URL"
 
-      - name: Check scraping results
+      - name: スクレイピング結果の確認
         run: |
           if [ -d "sites" ]; then
             echo "保存されたファイル:"
@@ -116,28 +101,13 @@ jobs:
             exit 1
           fi
 
-      - name: Commit and push changes
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 変更の確認とコミット
         run: |
-          git config user.name "GitHub Action"
-          git config user.email "action@github.com"
           git add -f url_patterns.json sites/
-          if [[ -n "$(git status --porcelain)" ]]; then
-            git commit -m "Scrape: ${{ github.event.inputs.target_url }} ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
-            git push
+          if git diff --cached --quiet; then
+            echo "コミットする変更はありません"
           else
-            echo "変更するファイルがありません"
+            echo "変更をコミットします"
+            git commit -m "Scrape: ${{ github.event.inputs.target_url }} ($(date -u '+%Y-%m-%d %H:%M:%S UTC')) [skip ci]"
+            git push origin HEAD:main
           fi
-
-      - name: Upload artifact on failure
-        if: failure()
-        uses: actions/upload-artifact@v3.1.0
-        with:
-          name: debug-logs
-          path: |
-            ./*.log
-            ./sites/
-            ./url_patterns.json
-          retention-days: 7
