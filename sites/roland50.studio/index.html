@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/><title>Roland50.studio</title><meta content="Emulate the sound of Roland's most famous and influential musical instruments from Yuri Suzuki and Roland." name="description"/><link href="https://roland50.studio/icons/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/><link href="https://roland50.studio/icons/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png"/><link href="https://roland50.studio/icons/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png"/><link href="https://roland50.studio/site.webmanifest" rel="manifest"/><link color="#ff5a00" href="https://roland50.studio/icons/safari-pinned-tab.svg" rel="mask-icon"/><link href="https://roland50.studio/icons/favicon.ico" rel="shortcut icon"/><meta content="#000000" name="msapplication-TileColor"/><meta content="browserconfig.xml" name="msapplication-config"/><meta content="#000000" name="theme-color"/><meta content="summary_large_image" name="twitter:card"/><meta content="@RolandGlobal" name="twitter:site"/><meta content="@RolandGlobal" name="twitter:creator"/><meta content="Roland50.studio" name="twitter:title"/><meta content="Emulate the sound of Roland's most famous and influential musical instruments from Yuri Suzuki and Roland." name="twitter:description"/><meta content="https://roland50.studio/card-twitter.png" name="twitter:image"/><meta content="https://roland50.studio" property="og:url"/><meta content="Roland50.studio" property="og:title"/><meta content="Emulate the sound of Roland's most famous and influential musical instruments from Yuri Suzuki and Roland." property="og:description"/><meta content="https://roland50.studio/card-facebook.png" property="og:image"/><link as="image" href="https://roland50.studio/_next/static/chunks/src/assets/images/roland-r.98db3dfba1a52f3c.svg" rel="preload" type="image/svg+xml"/><link as="image" href="https://roland50.studio/_next/static/chunks/src/assets/images/tutorial-arrow-bottom.2814d00d3bf1bafd.svg" rel="preload" type="image/svg+xml"/><link as="image" href="https://roland50.studio/_next/static/chunks/src/assets/images/tutorial-arrow-right.eadff145149bf6b0.svg" rel="preload" type="image/svg+xml"/><meta content="26" name="next-head-count"/><link as="style" href="https://roland50.studio/_next/static/css/6e2bb5504f9b76c8.css" rel="preload"/><link data-n-g="" href="https://roland50.studio/_next/static/css/6e2bb5504f9b76c8.css" rel="stylesheet"/><noscript data-n-css=""></noscript><script defer="" nomodule="" src="https://roland50.studio/_next/static/chunks/polyfills-5cd94c89d3acac5f.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/webpack-a48ad133a5452795.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/framework-8957c350a55da097.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/main-bd817fa5a106f441.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/pages/_app-0848a01df0fa1c2e.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/29107295-a2d0c8e72019a3ed.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/fb7d5399-df0b09ae0dbdfd43.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/988-e0294aa16181ad74.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/423-3aac35486e7c8a25.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/675-23de062a010c619e.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/166-d4cce1e7cc6b51d8.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/501-207d8041b230ef11.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/296-fbf592d5c7c5c77a.js"></script><script defer="" src="https://roland50.studio/_next/static/chunks/pages/index-9f736cfa8757ed16.js"></script><script defer="" src="https://roland50.studio/_next/static/build/_buildManifest.js"></script><script defer="" src="https://roland50.studio/_next/static/build/_ssgManifest.js"></script><script defer="" src="https://roland50.studio/_next/static/build/_middlewareManifest.js"></script><style id="__jsx-8b41cf4aeca815c4">.tabScroller{overflow-x:hidden}
+.tabs.jsx-8b41cf4aeca815c4{height:100%;
+display:grid;
+grid-auto-flow:column;
+grid-template-columns:repeat(auto-fit, minmax(min-content, 1fr));
+justify-items:center;
+padding:0 1px}</style><style id="__jsx-2735720699">.bpmSlider.jsx-2735720699{display:grid;
+grid-auto-flow:column;
+grid-template-columns:min-content auto;
+grid-template-rows:auto;
+gap:12px;
+place-content:center}
+.bpmLabel.jsx-2735720699{font-size:14px;
+font-weight:600;
+line-height:1;
+text-align:center;
+padding-top:1px}
+.bpmSliderInput.jsx-2735720699{width:80px;
+height:18px;
+margin:0;
+background:transparent;
+-webkit-appearance:none}
+.bpmSliderInput.jsx-2735720699:focus{outline:none}
+.bpmSliderInput.jsx-2735720699::-webkit-slider-runnable-track{width:100%;
+height:1px;
+cursor:pointer;
+animate:0.2s;
+background:#595959;
+border:0px solid white}
+.bpmSliderInput.jsx-2735720699::-webkit-slider-thumb{height:10px;
+width:10px;
+border-radius:5px;
+background:white;
+cursor:pointer;
+-webkit-transform:translateY(-50%);
+-moz-transform:translateY(-50%);
+-ms-transform:translateY(-50%);
+transform:translateY(-50%);
+-webkit-appearance:none}</style><style id="__jsx-15837228">button.jsx-15837228{position:relative;
+width:44px;
+height:44px;
+display:grid;
+place-content:center}
+svg.jsx-15837228{width:28px;
+height:28px;
+display:block}
+svg.jsx-15837228 .background.jsx-15837228{fill:#f81500}
+svg.jsx-15837228 .outline.jsx-15837228{fill:none;
+stroke:#ffffff;
+stroke-miterlimit:10}</style><style id="__jsx-2392476424">.menu.jsx-2392476424{position:relative;
+display:grid;
+place-content:center}
+.toggle.jsx-2392476424{height:44px;
+width:44px}
+.toggle.jsx-2392476424 img.jsx-2392476424{height:24px;
+width:24px}
+.dropdown.jsx-2392476424{z-index:6;
+display:inline-grid;
+grid-auto-flow:row;
+position:absolute;
+bottom:-11px;
+right:-12px;
+-webkit-transform:translate(0, 100%);
+-moz-transform:translate(0, 100%);
+-ms-transform:translate(0, 100%);
+transform:translate(0, 100%);
+background:#1e1e1e;
+border:1px solid #595959;
+-webkit-transition:0.5s opacity ease;
+transition:0.5s opacity ease;
+opacity:0;
+pointer-events:none;
+cursor:default}
+.dropdown.jsx-2392476424 a.jsx-2392476424{display:grid;
+grid-auto-flow:column;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+justify-items:start;
+-webkit-justify-content:start;
+justify-content:start;
+width:200px;
+height:44px;
+text-align:left;
+white-space:nowrap;
+background-color:transparent;
+opacity:1;
+-webkit-transition:0.15s background-color ease, 0.15s opacity ease;
+transition:0.15s background-color ease, 0.15s opacity ease}
+.dropdown.jsx-2392476424 a.jsx-2392476424:before{content:"";
+display:block;
+margin:18px 12px 18px 18px;
+width:8px;
+height:8px;
+border-radius:4px;
+background:white}
+.dropdown.jsx-2392476424 a.jsx-2392476424:hover{background-color:#000000}
+.dropdown.jsx-2392476424:hover a.jsx-2392476424:not(:hover){opacity:0.2}</style><style id="__jsx-1758447452">.header.jsx-1758447452{display:grid;
+grid-template-areas:"logo instruments bpm record menu";
+grid-template-columns:auto 1fr auto auto auto;
+grid-template-rows:auto;
+background:black;
+border-bottom:1px solid white}
+.logo.jsx-1758447452{grid-area:logo;
+display:grid;
+place-content:center;
+place-self:start}
+.logo.jsx-1758447452 a.jsx-1758447452{padding:23px 10px 23px 23px}
+.logo.jsx-1758447452 img.jsx-1758447452{height:18px}
+.instruments.jsx-1758447452{grid-area:instruments;
+position:relative;
+display:grid;
+place-content:stretch}
+.instruments.jsx-1758447452:before, .instruments.jsx-1758447452:after{content:"";
+display:block;
+position:absolute;
+top:0;
+bottom:0;
+width:24px;
+pointer-events:none;
+z-index:4}
+.instruments.jsx-1758447452:before{left:0;
+background:linear-gradient(to left, transparent 0px, black 24px)}
+.instruments.jsx-1758447452:after{right:0;
+background:linear-gradient(to right, transparent 0px, black 24px)}
+.bpm.jsx-1758447452{grid-area:bpm;
+display:grid;
+place-content:center;
+padding:0 20px}
+.record.jsx-1758447452{grid-area:record;
+display:grid;
+place-content:center}
+.menu.jsx-1758447452{grid-area:menu;
+width:66px;
+height:66px;
+display:grid;
+place-content:center}</style><style id="__jsx-2375771986">.intro.jsx-2375771986{position:fixed;
+z-index:4;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:grid;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+padding: calc(var(--global-margin) * 1.5);
+background-color:rgba(0, 0, 0, 0.94);
+color:white;
+-webkit-transition:0.75s opacity ease;
+transition:0.75s opacity ease;
+opacity:1;
+pointer-events:initial;
+cursor:pointer}
+.inner.jsx-2375771986{width:100%;
+max-width:1920px;
+height:100%;
+max-height:1080px;
+display:grid;
+grid-template-columns:33% 1fr;
+grid-template-rows:min-content min-content min-content;
+grid-template-areas:"logo ." "text timers" ". timers" "button timers";
+gap: calc(var(--global-margin) * 1.5)}
+.logo.jsx-2375771986{grid-area:logo;
+width:100%;
+max-width:undefined;
+justify-self:undefined}
+.text.jsx-2375771986{grid-area:text;
+width:undefined;
+max-width:undefined;
+display:grid;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+justify-items:center;
+justify-self:undefined;
+font-size:1.1em;
+text-align:left;
+margin:0}
+.button.jsx-2375771986{grid-area:button;
+justify-self:start;
+-webkit-align-self:end;
+-ms-flex-item-align:end;
+align-self:end;
+margin-bottom:3.8vmin;
+font-family:neue-haas-unica, sans-serif;
+font-weight:600;
+text-transform:uppercase;
+padding:0.8em 2em 1em 2em;
+background:#1e1e1e;
+border:1px solid #595959;
+-webkit-transition:border-color 0.15s ease;
+transition:border-color 0.15s ease}
+.button.jsx-2375771986:hover{border-color:#ffffff}
+.timers.jsx-2375771986{grid-area:timers;
+display:grid;
+grid-auto-flow:row;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+gap:1em}</style><style id="__jsx-467b9a9836e4ac6e">div.jsx-467b9a9836e4ac6e{position:fixed;
+top:0;
+left:0;
+width:100vw;
+height:100vh;
+display:grid;
+place-content:center;
+background:#979797;
+z-index:999}
+img.jsx-467b9a9836e4ac6e{width:20vw;
+margin:0 auto 3vw auto}
+p.jsx-467b9a9836e4ac6e{margin:0;
+text-align:center;
+font-size:2vw;
+color:black}</style><style data-styled-jsx="" type="text/css">.tab.jsx-395344180{width:100%;
+min-width:115px;
+display:grid;
+grid-auto-flow:column;
+place-content:center;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+gap:8px;
+background:#1e1e1e;
+border-right:1px solid #595959;
+-webkit-transition:background-color 0.15s ease, border-color 0.15s ease;
+transition:background-color 0.15s ease, border-color 0.15s ease;
+touch-action:none}
+.tab.unreleased.jsx-395344180{min-width:auto;
+padding:0 20px;
+background:none;
+border-right:1px solid rgba(#595959, 0.6);
+cursor:pointer}
+.tab.dragging.jsx-395344180{position:fixed;
+z-index:100}
+.padlock.jsx-395344180{height:15px}
+.logo.jsx-395344180{height:13px}
+.light.jsx-395344180{height:11px;
+width:11px;
+border-radius:6px;
+background-color:#a0a0a0;
+-webkit-transition:background-color 0.15s ease;
+transition:background-color 0.15s ease}
+.padlock.jsx-395344180{opacity:0.2}</style><style data-styled-jsx="" type="text/css">.tab.jsx-2370112706{width:100%;
+min-width:115px;
+display:grid;
+grid-auto-flow:column;
+place-content:center;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+gap:8px;
+background:#1e1e1e;
+border-right:1px solid #595959;
+-webkit-transition:background-color 0.15s ease, border-color 0.15s ease;
+transition:background-color 0.15s ease, border-color 0.15s ease;
+touch-action:none}
+.tab.unreleased.jsx-2370112706{min-width:auto;
+padding:0 20px;
+background:none;
+border-right:1px solid rgba(#595959, 0.6);
+cursor:pointer}
+.tab.dragging.jsx-2370112706{position:fixed;
+z-index:100}
+.padlock.jsx-2370112706{height:15px}
+.logo.jsx-2370112706{height:13px}
+.light.jsx-2370112706{height:11px;
+width:11px;
+border-radius:6px;
+background-color:#5bd613;
+-webkit-transition:background-color 0.15s ease;
+transition:background-color 0.15s ease}
+.padlock.jsx-2370112706{opacity:0.2}</style><style data-styled-jsx="" type="text/css">.tab.jsx-3568297851{width:100%;
+min-width:115px;
+display:grid;
+grid-auto-flow:column;
+place-content:center;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+gap:8px;
+background:#1e1e1e;
+border-right:1px solid #595959;
+-webkit-transition:background-color 0.15s ease, border-color 0.15s ease;
+transition:background-color 0.15s ease, border-color 0.15s ease;
+touch-action:none}
+.tab.unreleased.jsx-3568297851{min-width:auto;
+padding:0 20px;
+background:none;
+border-right:1px solid rgba(#595959, 0.6);
+cursor:pointer}
+.tab.dragging.jsx-3568297851{position:fixed;
+z-index:100}
+.padlock.jsx-3568297851{height:15px}
+.logo.jsx-3568297851{height:6.5px}
+.light.jsx-3568297851{height:11px;
+width:11px;
+border-radius:6px;
+background-color:#a0a0a0;
+-webkit-transition:background-color 0.15s ease;
+transition:background-color 0.15s ease}
+.padlock.jsx-3568297851{opacity:0.2}</style><style data-styled-jsx="" type="text/css">.tab.jsx-1524551351{width:100%;
+min-width:115px;
+display:grid;
+grid-auto-flow:column;
+place-content:center;
+-webkit-align-items:center;
+-webkit-box-align:center;
+-ms-flex-align:center;
+align-items:center;
+gap:8px;
+background:#1e1e1e;
+border-right:1px solid #595959;
+-webkit-transition:background-color 0.15s ease, border-color 0.15s ease;
+transition:background-color 0.15s ease, border-color 0.15s ease;
+touch-action:none}
+.tab.unreleased.jsx-1524551351{min-width:auto;
+padding:0 20px;
+background:none;
+border-right:1px solid rgba(#595959, 0.6);
+cursor:pointer}
+.tab.dragging.jsx-1524551351{position:fixed;
+z-index:100}
+.padlock.jsx-1524551351{height:15px}
+.logo.jsx-1524551351{height:10px}
+.light.jsx-1524551351{height:11px;
+width:11px;
+border-radius:6px;
+background-color:#a0a0a0;
+-webkit-transition:background-color 0.15s ease;
+transition:background-color 0.15s ease}
+.padlock.jsx-1524551351{opacity:0.2}</style><link as="script" href="https://roland50.studio/_next/static/chunks/pages/about-e55d2d7a72d87f8b.js" rel="prefetch"/><link as="script" href="https://roland50.studio/_next/static/chunks/pages/privacy-56b6cc8ae7fb87b8.js" rel="prefetch"/><link as="script" href="https://roland50.studio/_next/static/chunks/pages/trademark-bf3bff06d21eb2e4.js" rel="prefetch"/><style data-styled-jsx="" type="text/css">.container.jsx-56f5d6f5454b6c33{position:relative;
+width:100%;
+height:100%;
+cursor:pointer}</style><style data-styled-jsx="" type="text/css">.knob.jsx-2331626643{display:grid;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+-webkit-justify-content:center;
+justify-content:center;
+justify-items:center}
+.knobLabel.jsx-2331626643{text-align:center;
+text-transform:uppercase;
+font-size:15px;
+font-weight:600;
+line-height:1;
+margin-top:8px;
+color:#1d1d1c}
+.knobWrapper.jsx-2331626643{position:relative;
+width:100%;
+display:grid;
+place-items:center;
+touch-action:none}
+.knobForeground.jsx-2331626643{width:85%;
+height:85%;
+z-index:1;
+position:absolute;
+cursor:pointer}
+.knobBackground.jsx-2331626643{width:100%;
+z-index:0;
+-webkit-user-select:none;
+-moz-user-select:none;
+-ms-user-select:none;
+user-select:none}
+.knobMinMaxLabels.jsx-2331626643{width:100%;
+display:grid;
+grid-auto-flow:column}
+.knobMinMaxLabels.jsx-2331626643 label.jsx-2331626643{text-transform:uppercase;
+font-weight:600;
+font-size:10px;
+white-space:nowrap;
+color:#585856}
+.knobLabelMin.jsx-2331626643{text-align:right}
+.knobLabelMax.jsx-2331626643{text-align:left}</style><style data-styled-jsx="" type="text/css">.instrument.tr808{background:var(--808-black)}
+.instrument.tr808 .content{width:min(70vh, calc(100% - 10vw))}
+@media (min-aspect-ratio:394 / 703) {.isSmallScreen .instrument.tr808 .content{width:40vh}}
+.instrument.tr808 .stepSequencerContainer{margin-left:-5px;
+margin-right:-5px}
+.tr808 .knobLabel{color:var(--808-green)}
+.tr808 .tempo .knobLabel{margin-top:24px}
+.tr808 .tempo .knobWrapper{width:174px;
+margin-top:30px}
+.tr808 .shuffle .knobLabel{margin-top:20px}
+.tr808 .shuffle .knobWrapper{width:74px;
+margin-top:15px}</style><style data-styled-jsx="" type="text/css">.tb303Controls .knobLabel{margin-top:17px;
+font-size:13px;
+color:var(--303-black)}
+.tb303Controls .knobWrapper{width:71px;
+margin-top:13px}
+.tb303Controls .knobForeground{width:80%}</style><style data-styled-jsx="" type="text/css">.instrument.tb303{background-color:var(--303-light-grey)}
+.instrument.tb303 .content{width:min(70vh, calc(100% - 10vw))}
+.instrument.tb303 .stepSequencerContainer{margin-left:-5px;
+margin-right:-5px}
+@media (min-aspect-ratio:394 / 703) {.isSmallScreen .instrument.tb303 .content{width:40vh}}</style><style data-styled-jsx="" type="text/css">.tab.jsx-3867433238{width:50px;
+height:100%;
+position:absolute;
+top:0;
+left:0;
+display:grid;
+padding:15px;
+cursor:pointer;
+opacity:0;
+pointer-events:none;
+-webkit-transition:opacity 0.15s ease;
+transition:opacity 0.15s ease;
+background:var(--808-black)}
+.tab.jsx-3867433238 .logo.jsx-3867433238{display:block;
+width:100%;
+-webkit-align-self:start;
+-ms-flex-item-align:start;
+align-self:start}
+.tab.jsx-3867433238 .arrow.jsx-3867433238{display:block;
+width:100%;
+-webkit-align-self:end;
+-ms-flex-item-align:end;
+align-self:end}
+.branding.jsx-3867433238{-webkit-user-select:none;
+-moz-user-select:none;
+-ms-user-select:none;
+user-select:none;
+pointer-events:none}
+.controlsOverflowWrap.jsx-3867433238{width:756px;
+height:219.24px}
+.controls.jsx-3867433238{width:1000px;
+height:290px;
+-webkit-transform:scale(0.756);
+-moz-transform:scale(0.756);
+-ms-transform:scale(0.756);
+transform:scale(0.756);
+transform-origin:top left;
+display:grid;
+grid-template-columns:215px 270px 178px 185px 152px;
+grid-template-rows:30px 132px 126px;
+grid-template-areas:"labels labels labels labels labels" "random tempo clear . fill" "start tempo shuffle . ."}
+.labels.jsx-3867433238{grid-area:labels;
+display:grid;
+grid-template-columns:24px repeat(16, 1fr);
+grid-template-rows:30px;
+background:var(--808-green);
+border-top-left-radius:7px;
+border-top-right-radius:7px}
+.label.jsx-3867433238{display:grid;
+place-content:center;
+font-size:18px;
+font-weight:600;
+line-height:1;
+color:var(--808-black)}
+.label.jsx-3867433238:first-child{display:grid;
+opacity:0}
+.random.jsx-3867433238{grid-area:random;
+display:grid;
+place-content:center;
+background:var(--808-green)}
+.random.jsx-3867433238 .switchWrapper.jsx-3867433238{width:85px;
+padding-top:20px;
+display:grid;
+grid-template-areas:"switch" "labels";
+gap:10px}
+.random.jsx-3867433238 .labels.jsx-3867433238{position:relative;
+display:grid;
+grid-auto-flow:column;
+grid-template-columns:1fr 1fr;
+text-transform:uppercase;
+color:#1d1d1c}
+.random.jsx-3867433238 .labels.jsx-3867433238 label.jsx-3867433238{position:absolute;
+top:0}
+.random.jsx-3867433238 .labels.jsx-3867433238 label.a.jsx-3867433238{left:0;
+-webkit-transform:translateX(-50%);
+-moz-transform:translateX(-50%);
+-ms-transform:translateX(-50%);
+transform:translateX(-50%)}
+.random.jsx-3867433238 .labels.jsx-3867433238 label.random.jsx-3867433238{right:0;
+-webkit-transform:translateX(40%);
+-moz-transform:translateX(40%);
+-ms-transform:translateX(40%);
+transform:translateX(40%)}
+.start.jsx-3867433238{grid-area:start;
+display:grid;
+-webkit-align-items:start;
+-webkit-box-align:start;
+-ms-flex-align:start;
+align-items:start;
+-webkit-justify-content:center;
+justify-content:center;
+border-bottom-left-radius:7px;
+border-bottom-right-radius:7px;
+background:var(--808-green)}
+.start.jsx-3867433238 button.jsx-3867433238{width:159px;
+height:66px;
+margin-top:15px;
+background:var(--808-yellow);
+border-style:solid;
+border-color:var(--808-black);
+border-width:3px;
+font-size:15px;
+color:var(--808-black);
+text-transform:uppercase}
+.tempo.jsx-3867433238{grid-area:tempo;
+display:grid;
+-webkit-align-items:start;
+-webkit-box-align:start;
+-ms-flex-align:start;
+align-items:start;
+-webkit-justify-content:center;
+justify-content:center}
+.clear.jsx-3867433238{grid-area:clear;
+display:grid;
+-webkit-align-items:start;
+-webkit-box-align:start;
+-ms-flex-align:start;
+align-items:start;
+-webkit-justify-content:center;
+justify-content:center;
+margin-top:8px;
+border-left:1px solid var(--808-green)}
+.clear.jsx-3867433238 button.jsx-3867433238{display:grid;
+justify-items:center;
+margin-top:23px}
+.clear.jsx-3867433238 button.jsx-3867433238 label.jsx-3867433238{display:grid;
+place-content:center;
+width:100px;
+height:23px;
+font-size:15px;
+font-weight:600;
+text-transform:uppercase;
+color:var(--808-yellow);
+border:1px solid var(--808-yellow)}
+.clear.jsx-3867433238 button.jsx-3867433238 .circle.jsx-3867433238{width:30px;
+height:30px;
+margin-top:18px;
+border-radius:15px;
+background:var(--808-red)}
+.shuffle.jsx-3867433238{grid-area:shuffle;
+display:grid;
+-webkit-align-items:start;
+-webkit-box-align:start;
+-ms-flex-align:start;
+align-items:start;
+-webkit-justify-content:center;
+justify-content:center;
+border-top:1px solid var(--808-green);
+border-right:1px solid var(--808-green)}
+.fill.jsx-3867433238{grid-area:fill;
+display:grid;
+-webkit-align-items:start;
+-webkit-box-align:start;
+-ms-flex-align:start;
+align-items:start;
+-webkit-justify-content:center;
+justify-content:center;
+border-bottom-left-radius:7px;
+border-bottom-right-radius:7px;
+background:var(--808-green)}
+.fill.jsx-3867433238 button.jsx-3867433238{width:67px;
+height:67px;
+margin-top:32px;
+background:var(--808-yellow);
+border-style:solid;
+border-color:var(--808-black);
+border-width:3px;
+font-size:15px;
+color:var(--808-black);
+text-transform:uppercase}</style><style data-styled-jsx="" type="text/css">.controls.jsx-1106157820{width:1000px;
+height:290px;
+-webkit-transform:scale(0.756);
+-moz-transform:scale(0.756);
+-ms-transform:scale(0.756);
+transform:scale(0.756);
+transform-origin:top left;
+display:grid;
+grid-template-columns:182px 1fr 535px 1fr 182px;
+grid-template-rows:30px 129px 5px 123px;
+grid-template-areas:"labels labels labels labels labels" "random . knobs . clear" ". line line line ." "run . . . waveform"}
+.labels.jsx-1106157820{grid-area:labels;
+display:grid;
+grid-template-columns:24px repeat(16, 1fr);
+grid-template-rows:30px;
+background:var(--303-black)}
+.label.jsx-1106157820{display:grid;
+place-content:center;
+font-size:14px;
+font-weight:600;
+line-height:1;
+color:var(--303-red)}
+.label.jsx-1106157820:first-child{opacity:0}
+.random.jsx-1106157820{grid-area:random;
+display:grid;
+-webkit-justify-content:center;
+justify-content:center;
+justify-items:center;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+background:var(--303-black)}
+.random.jsx-1106157820 label.jsx-1106157820{text-align:center;
+text-transform:uppercase;
+font-weight:600;
+font-size:15px;
+margin-top:13px}
+.random.jsx-1106157820 button.jsx-1106157820{width:81px;
+height:45px;
+margin-top:21px;
+background:white;
+border-style:solid;
+border-color:#e1e1e1;
+border-width:5px}
+.random.jsx-1106157820 button.jsx-1106157820:hover{background:#eeeeee}
+.knobs.jsx-1106157820{grid-area:knobs;
+display:grid;
+grid-auto-flow:column;
+grid-template-columns:repeat(5, 107px);
+grid-template-rows:min-content}
+.knobs.jsx-1106157820 .decay.jsx-1106157820, .knobs.jsx-1106157820 .accent.jsx-1106157820{display:initial}
+.clear.jsx-1106157820{grid-area:clear;
+display:grid;
+-webkit-justify-content:center;
+justify-content:center;
+justify-items:center;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+background:#efefef}
+.clear.jsx-1106157820 label.jsx-1106157820{margin-top:13px;
+text-align:center;
+text-transform:uppercase;
+font-size:15px;
+font-weight:600;
+color:#1d1d1c}
+.clear.jsx-1106157820 button.jsx-1106157820{margin-top:21px;
+width:77px;
+height:41px;
+background:#fff;
+border:3px solid #e1e1e1}
+.clear.jsx-1106157820 button.jsx-1106157820:hover{background:#eeeeee}
+.divider.jsx-1106157820{grid-area:line;
+display:block;
+height:1px;
+margin:2px 10px;
+background:#aeaeae}
+.run.jsx-1106157820{grid-area:run;
+display:grid;
+-webkit-justify-content:center;
+justify-content:center;
+justify-items:center;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+background:#efefef}
+.run.jsx-1106157820 label.jsx-1106157820{text-align:center;
+text-transform:uppercase;
+font-weight:600;
+color:#1d1d1c;
+font-size:15px;
+margin-top:12px}
+.run.jsx-1106157820 label.jsx-1106157820 span.jsx-1106157820{display:inline-grid;
+width:8px;
+height:8px;
+border-radius:4px;
+margin:0 1px 1px 1px;
+background:#ff0000}
+.run.jsx-1106157820 button.jsx-1106157820{width:108px;
+height:72px;
+margin-top:9px;
+background-image:linear-gradient(90deg, #a1a1a2 19px, #ffffff 0 84px, #a1a1a2 0);
+border:3px solid #e1e1e1;
+border-width:3px}
+.run.jsx-1106157820 button.jsx-1106157820:hover{background-image:linear-gradient(90deg, #a1a1a2 19px, #eeeeee 0 84px, #a1a1a2 0)}
+.waveform.jsx-1106157820{grid-area:waveform;
+display:grid;
+-webkit-justify-content:center;
+justify-content:center;
+justify-items:center;
+-webkit-align-content:start;
+-ms-flex-line-pack:start;
+align-content:start;
+background:#efefef}
+.waveform.jsx-1106157820 label.jsx-1106157820{margin-top:13px;
+text-align:center;
+text-transform:uppercase;
+font-size:15px;
+font-weight:600;
+color:#1d1d1c}
+.waveform.jsx-1106157820 .switchContainer.jsx-1106157820{position:relative;
+margin-top:21px;
+margin-bottom:17px;
+width:80px;
+height:31px}
+.waveform.jsx-1106157820 img.jsx-1106157820{display:block;
+height:15px;
+margin-left:2px}</style><style data-styled-jsx="" type="text/css">.tab.jsx-154824764{width:50px;
+height:100%;
+position:absolute;
+top:0;
+left:0;
+display:grid;
+padding:15px 14px;
+cursor:pointer;
+opacity:0;
+pointer-events:none;
+-webkit-transition:opacity 0.15s ease;
+transition:opacity 0.15s ease;
+background:var(--303-light-grey);
+border-left:1px solid #aeaeae}
+.tab.jsx-154824764 .logo.jsx-154824764{display:block;
+width:100%;
+-webkit-align-self:start;
+-ms-flex-item-align:start;
+align-self:start}
+.tab.jsx-154824764 .arrow.jsx-154824764{display:block;
+width:100%;
+-webkit-align-self:end;
+-ms-flex-item-align:end;
+align-self:end}
+.branding.jsx-154824764{-webkit-user-select:none;
+-moz-user-select:none;
+-ms-user-select:none;
+user-select:none;
+pointer-events:none}
+.controlsOverflowWrap.jsx-154824764{width:756px;
+height:219.24px}</style><meta content="2025-03-05T13:46:57.150729" name="scraping-time"/></head><body><div data-reactroot="" id="__next"><div class="app isShortScreen smallScreenVisibleBay-left"><header class="jsx-1758447452 header"><div class="jsx-1758447452 logo"><a class="jsx-1758447452" href="/"><img alt="Roland50 Studio" class="jsx-1758447452" src="https://roland50.studio/_next/static/chunks/src/assets/images/roland50-studio.903ec34eb02101b8.svg"/></a></div><div class="jsx-1758447452 instruments"><div class="tabScroller"><div style="transform:translateX(0px);width:100%;height:100%;min-width:max-content"><div class="jsx-8b41cf4aeca815c4 tabs"><button class="jsx-395344180 tab sh101-tab"><div class="jsx-395344180 light"></div><img alt="Roland SH-101" class="jsx-395344180 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/101-logo.45b1fa74bc3f6dcc.svg"/></button><button class="jsx-2370112706 tab tb303-tab"><div class="jsx-2370112706 light"></div><img alt="Roland TB-303" class="jsx-2370112706 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/303-logo.3d46bd3325860312.svg"/></button><button class="jsx-3568297851 tab sp404-tab"><div class="jsx-3568297851 light"></div><img alt="Roland SP-404" class="jsx-3568297851 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/404-logo.6e9a46dc04d2b2f5.svg"/></button><button class="jsx-395344180 tab tr606-tab"><div class="jsx-395344180 light"></div><img alt="Roland TR-606" class="jsx-395344180 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/606-logo.fdbd53163e7538e2.svg"/></button><button class="jsx-1524551351 tab tr707-tab"><div class="jsx-1524551351 light"></div><img alt="Roland TR-707" class="jsx-1524551351 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/707-logo.8d703b7dee8d61ee.svg"/></button><button class="jsx-2370112706 tab tr808-tab"><div class="jsx-2370112706 light"></div><img alt="Roland TR-808" class="jsx-2370112706 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/808-logo.2c735ea9fc3f5f01.svg"/></button><button class="jsx-1524551351 tab tr909-tab"><div class="jsx-1524551351 light"></div><img alt="Roland TR-909" class="jsx-1524551351 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/909-logo.834691d07b0549ca.svg"/></button></div></div></div></div><div class="jsx-1758447452 bpm"><div class="jsx-2735720699 bpmSlider"><label class="jsx-2735720699 bpmLabel">BPM</label><input class="jsx-2735720699 bpmSliderInput" max="200" min="30" type="range" value="120"/></div></div><div class="jsx-1758447452 record"><button class="jsx-15837228"><svg class="jsx-15837228" viewbox="0 0 41.03 41.03" xmlns="http://www.w3.org/2000/svg"><circle class="jsx-15837228 background" cx="20.52" cy="20.52" r="16.01"></circle><circle class="jsx-15837228 outline" cx="20.52" cy="20.52" r="20.02"></circle></svg></button></div><div class="jsx-1758447452 menu"><div class="jsx-2392476424 menu"><button class="jsx-2392476424 toggle"><img alt="Open Menu" class="jsx-2392476424" src="https://roland50.studio/_next/static/chunks/src/assets/images/hamburger.7fc3bd71c684aec1.svg"/></button><div class="jsx-2392476424 dropdown"><a class="jsx-2392476424" href="/about">About</a><a class="jsx-2392476424" href="/masterclass">Master Class</a><a class="jsx-2392476424" href="/privacy">Privacy Policy</a><a class="jsx-2392476424" href="/trademark">Trademark</a></div></div></div></header><main class="main"><div class="instrument tr808" style="transform: translateX(0px); width: 960px;"><div class="jsx-2097373082 jsx-3867433238 tab"><img alt="TR-808" class="jsx-2097373082 jsx-3867433238 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/808-logo-vertical.a2e6128e300abfc8.svg"/><img alt="Play" class="jsx-2097373082 jsx-3867433238 arrow" src="https://roland50.studio/_next/static/chunks/src/assets/images/tab-arrow-white.ca27a636c5e48f79.svg"/></div><div class="content" style="opacity: 1;"><div class="stepSequencerContainer" style="position: relative;"><div class="stepSequencer" style="position: relative; width: 100%; height: 560.488px; overflow: hidden;"><canvas data-engine="three.js r137" height="560" style="display: block; width: 766px; height: 560.484px;" width="766"></canvas></div></div><div class="jsx-2097373082 jsx-3867433238 branding"><span style="box-sizing: border-box; display: inline-block; overflow: hidden; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px; position: relative; max-width: 100%;"><span style="box-sizing: border-box; display: block; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px; max-width: 100%;"><img alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 version=%271.1%27 width=%272000%27 height=%27190%27/%3e" style="display: block; max-width: 100%; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px;"/></span><img alt="Rhythm Composer, computer controlled. TR-808" data-nimg="intrinsic" decoding="async" src="https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F808-branding.76531fa9.png&amp;w=3840&amp;q=75" srcset="https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F808-branding.76531fa9.png&amp;w=2048&amp;q=75 1x, https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F808-branding.76531fa9.png&amp;w=3840&amp;q=75 2x" style="position: absolute; inset: 0px; box-sizing: border-box; padding: 0px; border: none; margin: auto; display: block; width: 0px; height: 0px; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%;"/></span></div><div class="jsx-2097373082 jsx-3867433238 controlsOverflowWrap"><div class="jsx-2097373082 jsx-3867433238 controls"><div class="jsx-2097373082 jsx-3867433238 labels"><div class="jsx-2097373082 jsx-3867433238 label">0</div><div class="jsx-2097373082 jsx-3867433238 label">1</div><div class="jsx-2097373082 jsx-3867433238 label">2</div><div class="jsx-2097373082 jsx-3867433238 label">3</div><div class="jsx-2097373082 jsx-3867433238 label">4</div><div class="jsx-2097373082 jsx-3867433238 label">5</div><div class="jsx-2097373082 jsx-3867433238 label">6</div><div class="jsx-2097373082 jsx-3867433238 label">7</div><div class="jsx-2097373082 jsx-3867433238 label">8</div><div class="jsx-2097373082 jsx-3867433238 label">9</div><div class="jsx-2097373082 jsx-3867433238 label">10</div><div class="jsx-2097373082 jsx-3867433238 label">11</div><div class="jsx-2097373082 jsx-3867433238 label">12</div><div class="jsx-2097373082 jsx-3867433238 label">13</div><div class="jsx-2097373082 jsx-3867433238 label">14</div><div class="jsx-2097373082 jsx-3867433238 label">15</div><div class="jsx-2097373082 jsx-3867433238 label">16</div></div><div class="jsx-2097373082 jsx-3867433238 random"><div class="jsx-2097373082 jsx-3867433238 switchWrapper"><div class="jsx-56f5d6f5454b6c33 container" style="background-color: rgb(29, 29, 28); width: 85px; height: 24px; border-radius: 12px;"><div style="position: absolute; height: 20px; width: 20px; will-change: transform; transform: translateX(0px); touch-action: none; background-color: white; left: 2px; top: 2px; border-radius: 10px;"></div></div><div class="jsx-2097373082 jsx-3867433238 labels"><label class="jsx-2097373082 jsx-3867433238 a">A</label><label class="jsx-2097373082 jsx-3867433238 random">Random</label></div></div></div><div class="jsx-2097373082 jsx-3867433238 start"><button class="jsx-2097373082 jsx-3867433238">Start</button></div><div class="jsx-2097373082 jsx-3867433238 tempo"><div class="jsx-2331626643 knob knob--tempo"><div class="jsx-2331626643 knobLabel">Tempo</div><div class="jsx-2331626643 knobWrapper"><img alt="Tempo" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/808Knob--tempo.5cd071db1b805275.svg" style="transform: rotate(8.82353deg);"/><img alt="Tempo" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/808KnobBackground.2ae997ee9854ef94.svg"/></div></div></div><div class="jsx-2097373082 jsx-3867433238 shuffle"><div class="jsx-2331626643 knob knob--shuffle"><div class="jsx-2331626643 knobLabel">Shuffle</div><div class="jsx-2331626643 knobWrapper"><img alt="Shuffle" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/808Knob--shuffle.68bd88cf24ce7958.svg" style="transform: rotate(0deg);"/><img alt="Shuffle" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/808KnobBackground.2ae997ee9854ef94.svg"/></div></div></div><div class="jsx-2097373082 jsx-3867433238 clear"><button class="jsx-2097373082 jsx-3867433238"><label class="jsx-2097373082 jsx-3867433238">Clear</label><div class="jsx-2097373082 jsx-3867433238 circle"></div></button></div><div class="jsx-2097373082 jsx-3867433238 fill"><button class="jsx-2097373082 jsx-3867433238">Fill</button></div></div></div></div></div><div class="instrument tb303" style="transform: translateX(960px); width: 960px;"><div class="jsx-2052136599 jsx-154824764 tab"><img alt="TB-303" class="jsx-2052136599 jsx-154824764 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/303-logo-vertical.f4280fc641127091.svg"/><img alt="Play" class="jsx-2052136599 jsx-154824764 arrow" src="https://roland50.studio/_next/static/chunks/src/assets/images/tab-arrow.81e3e5d3b6afe36d.svg"/></div><div class="content" style="opacity: 1;"><div class="stepSequencerContainer" style="position: relative;"><div class="stepSequencer" style="position: relative; width: 100%; height: 560.488px; overflow: hidden;"><canvas data-engine="three.js r137" height="560" style="display: block; width: 766px; height: 560.484px;" width="766"></canvas></div></div><div class="jsx-2052136599 jsx-154824764 branding"><span style="box-sizing: border-box; display: inline-block; overflow: hidden; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px; position: relative; max-width: 100%;"><span style="box-sizing: border-box; display: block; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px; max-width: 100%;"><img alt="" aria-hidden="true" src="data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 version=%271.1%27 width=%272000%27 height=%27190%27/%3e" style="display: block; max-width: 100%; width: initial; height: initial; background: none; opacity: 1; border: 0px; margin: 0px; padding: 0px;"/></span><img alt="TB-303, Computer Controlled. Bass Line" data-nimg="intrinsic" decoding="async" src="https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F303-branding.919f6e0a.png&amp;w=3840&amp;q=75" srcset="https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F303-branding.919f6e0a.png&amp;w=2048&amp;q=75 1x, https://roland50.studio/_next/image?url=%2F_next%2Fstatic%2Fmedia%2F303-branding.919f6e0a.png&amp;w=3840&amp;q=75 2x" style="position: absolute; inset: 0px; box-sizing: border-box; padding: 0px; border: none; margin: auto; display: block; width: 0px; height: 0px; min-width: 100%; max-width: 100%; min-height: 100%; max-height: 100%;"/></span></div><div class="jsx-2052136599 jsx-154824764 controlsOverflowWrap"><div class="jsx-998366669 jsx-1106157820 controls tb303Controls"><div class="jsx-998366669 jsx-1106157820 labels"><div class="jsx-998366669 jsx-1106157820 label">0</div><div class="jsx-998366669 jsx-1106157820 label">1</div><div class="jsx-998366669 jsx-1106157820 label">2</div><div class="jsx-998366669 jsx-1106157820 label">3</div><div class="jsx-998366669 jsx-1106157820 label">4</div><div class="jsx-998366669 jsx-1106157820 label">5</div><div class="jsx-998366669 jsx-1106157820 label">6</div><div class="jsx-998366669 jsx-1106157820 label">7</div><div class="jsx-998366669 jsx-1106157820 label">8</div><div class="jsx-998366669 jsx-1106157820 label">9</div><div class="jsx-998366669 jsx-1106157820 label">10</div><div class="jsx-998366669 jsx-1106157820 label">11</div><div class="jsx-998366669 jsx-1106157820 label">12</div><div class="jsx-998366669 jsx-1106157820 label">13</div><div class="jsx-998366669 jsx-1106157820 label">14</div><div class="jsx-998366669 jsx-1106157820 label">15</div><div class="jsx-998366669 jsx-1106157820 label">16</div></div><div class="jsx-998366669 jsx-1106157820 random"><label class="jsx-998366669 jsx-1106157820">Random</label><button class="jsx-998366669 jsx-1106157820"></button></div><div class="jsx-998366669 jsx-1106157820 knobs"><div class="jsx-998366669 jsx-1106157820 cutOffFeq"><div class="jsx-2331626643 knob knob--cutOffFreq"><div class="jsx-2331626643 knobLabel">Cut Off Freq</div><div class="jsx-2331626643 knobWrapper"><img alt="Cut Off Freq" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303Knob.ca243ff83499bb52.svg" style="transform: rotate(71.0526deg);"/><img alt="Cut Off Freq" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303KnobBackground.3e8213f5c3b470d1.svg"/></div></div></div><div class="jsx-998366669 jsx-1106157820 resonance"><div class="jsx-2331626643 knob knob--resonance"><div class="jsx-2331626643 knobLabel">Resonance</div><div class="jsx-2331626643 knobWrapper"><img alt="Resonance" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303Knob.ca243ff83499bb52.svg" style="transform: rotate(-60deg);"/><img alt="Resonance" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303KnobBackground.3e8213f5c3b470d1.svg"/></div></div></div><div class="jsx-998366669 jsx-1106157820 envMod"><div class="jsx-2331626643 knob knob--envMod"><div class="jsx-2331626643 knobLabel">Env Mod</div><div class="jsx-2331626643 knobWrapper"><img alt="Env Mod" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303Knob.ca243ff83499bb52.svg" style="transform: rotate(0deg);"/><img alt="Env Mod" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303KnobBackground.3e8213f5c3b470d1.svg"/></div></div></div><div class="jsx-998366669 jsx-1106157820 decay"><div class="jsx-2331626643 knob knob--decay"><div class="jsx-2331626643 knobLabel">Decay</div><div class="jsx-2331626643 knobWrapper"><img alt="Decay" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303Knob.ca243ff83499bb52.svg" style="transform: rotate(-75deg);"/><img alt="Decay" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303KnobBackground.3e8213f5c3b470d1.svg"/></div></div></div><div class="jsx-998366669 jsx-1106157820 accent"><div class="jsx-2331626643 knob knob--accent"><div class="jsx-2331626643 knobLabel">Accent</div><div class="jsx-2331626643 knobWrapper"><img alt="Accent" class="jsx-2331626643 knobForeground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303Knob.ca243ff83499bb52.svg" style="transform: rotate(0deg);"/><img alt="Accent" class="jsx-2331626643 knobBackground" src="https://roland50.studio/_next/static/chunks/src/assets/images/303KnobBackground.3e8213f5c3b470d1.svg"/></div></div></div></div><div class="jsx-998366669 jsx-1106157820 clear"><label class="jsx-998366669 jsx-1106157820">Clear</label><button class="jsx-998366669 jsx-1106157820"></button></div><div class="jsx-998366669 jsx-1106157820 divider"></div><div class="jsx-998366669 jsx-1106157820 run"><label class="jsx-998366669 jsx-1106157820">Run <span class="jsx-998366669 jsx-1106157820"></span> Stop</label><button class="jsx-998366669 jsx-1106157820"></button></div><div class="jsx-998366669 jsx-1106157820 waveform"><label class="jsx-998366669 jsx-1106157820">Waveform</label><div class="jsx-998366669 jsx-1106157820 switchContainer"><div class="jsx-56f5d6f5454b6c33 container" style="background-color: rgb(110, 110, 110);"><div style="position: absolute; height: 100%; width: 40px; will-change: transform; transform: translateX(0px); touch-action: none; background-color: black;"></div></div></div><img alt="Sawtooth and square waveforms" class="jsx-998366669 jsx-1106157820" src="https://roland50.studio/_next/static/chunks/src/assets/images/303ButtonLabel--waveformShapes.1ebb074620a22860.svg"/></div></div></div></div></div></main><div class="jsx-2375771986 intro"><div class="jsx-2375771986 inner"><img alt="Roland 50" class="jsx-2375771986 logo" src="https://roland50.studio/_next/static/chunks/src/assets/images/roland50-studio.903ec34eb02101b8.svg"/><p class="jsx-2375771986 text">In celebration of 50 years, Roland has collaborated with sound designer Yuri Suzuki to create Roland50 Studio, a digital reworking of some of their most famous and influential devices.</p><button class="jsx-2375771986 button">Enter</button><div class="jsx-2375771986 timers"></div></div></div></div></div><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{}},"page":"/","query":{},"buildId":"build","nextExport":true,"autoExport":true,"isFallback":false,"scriptLoader":[]}</script><script data-cf-beacon='{"token": "d5a4519f397e46cb9f91e45e5c94847b"}' defer="" src="https://static.cloudflareinsights.com/beacon.min.js"></script><next-route-announcer><p aria-live="assertive" id="__next-route-announcer__" role="alert" style="border: 0px; clip: rect(0px, 0px, 0px, 0px); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap; overflow-wrap: normal;"></p></next-route-announcer><script src="https://roland50.studio/_next/static/chunks/pages/about-e55d2d7a72d87f8b.js"></script><script src="https://roland50.studio/_next/static/chunks/pages/privacy-56b6cc8ae7fb87b8.js"></script><script src="https://roland50.studio/_next/static/chunks/pages/trademark-bf3bff06d21eb2e4.js"></script></body></html>
